@@ -11,55 +11,15 @@ import copy
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Any, Tuple, Optional
-from simulation import DataCenterSimulation, TEMP_CRITICAL, TEMP_MAX_SAFE, TOTAL_RACKS
+from simulation import DataCenterSimulation
+from config import (
+    TEMP_CRITICAL, TEMP_MAX_SAFE, TOTAL_RACKS,
+    WORKLOAD_PROFILES, INTENSITY_MULTIPLIERS, INTENSITY_LEVELS, DEFAULT_WEIGHTS
+)
 from ml_model import ThermalMLPredictor, get_trained_predictor
 
 
-# Workload configuration library
-WORKLOAD_PROFILES = {
-    "AI Training": {
-        "description": "High-intensity multi-epoch model training (PyTorch/JAX)",
-        "base_gpu_pct": 50.0,
-        "base_power_w": 1800.0,
-        "intensity_default": "High",
-        "badge_color": "#ec4899"
-    },
-    "AI Inference": {
-        "description": "Real-time microservice model inference",
-        "base_gpu_pct": 25.0,
-        "base_power_w": 800.0,
-        "intensity_default": "Medium",
-        "badge_color": "#06b6d4"
-    },
-    "LLM Inference": {
-        "description": "High memory-bandwidth autoregressive token generation",
-        "base_gpu_pct": 40.0,
-        "base_power_w": 1400.0,
-        "intensity_default": "High",
-        "badge_color": "#8b5cf6"
-    },
-    "Image Processing": {
-        "description": "Computer vision batch augmentation & filtering",
-        "base_gpu_pct": 20.0,
-        "base_power_w": 600.0,
-        "intensity_default": "Medium",
-        "badge_color": "#10b981"
-    }
-}
 
-INTENSITY_MULTIPLIERS = {
-    "Low": 0.65,
-    "Medium": 1.00,
-    "High": 1.35,
-    "Very High": 1.75
-}
-
-INTENSITY_LEVELS = {
-    "Low": 1,
-    "Medium": 2,
-    "High": 3,
-    "Very High": 4
-}
 
 
 class Workload:
@@ -70,6 +30,8 @@ class Workload:
         workload_type: str = "AI Training",
         intensity: str = "High",
         gpu_demand_pct: Optional[float] = None,
+        memory_demand_pct: Optional[float] = None,
+        duration_s: Optional[int] = None,
         priority: str = "High",
         workload_id: str = "WL-101"
     ):
@@ -85,9 +47,21 @@ class Workload:
         if gpu_demand_pct is not None:
             self.gpu_demand_pct = float(gpu_demand_pct)
         else:
-            self.gpu_demand_pct = round(profile["base_gpu_pct"] * multiplier, 1)
+            self.gpu_demand_pct = round(profile.get("base_gpu_pct", 0) * multiplier, 1)
 
-        self.power_est_w = round(profile["base_power_w"] * multiplier, 1)
+        # Calculate memory demand
+        if memory_demand_pct is not None:
+            self.memory_demand_pct = float(memory_demand_pct)
+        else:
+            self.memory_demand_pct = round(profile.get("base_mem_pct", 50.0) * multiplier, 1)
+
+        # Calculate duration
+        if duration_s is not None:
+            self.duration_s = int(duration_s)
+        else:
+            self.duration_s = profile.get("base_duration_s", 60)
+
+        self.power_est_w = round(profile.get("base_power_w", 1000) * multiplier, 1)
         self.intensity_val = INTENSITY_LEVELS.get(intensity, 3)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -97,19 +71,14 @@ class Workload:
             "intensity": self.intensity,
             "intensity_val": self.intensity_val,
             "gpu_demand_pct": self.gpu_demand_pct,
+            "memory_demand_pct": self.memory_demand_pct,
+            "duration_s": self.duration_s,
             "power_est_w": self.power_est_w,
             "priority": self.priority
         }
 
 
-# Default weights for HeatWise Composite Scoring
-DEFAULT_WEIGHTS = {
-    "temp_safety": 0.35,      # Weight for predicted post-placement temperature safety
-    "thermal_headroom": 0.25, # Weight for remaining thermal margin below critical threshold
-    "gpu_fit": 0.20,          # Weight for computational GPU availability & fit
-    "cooling_eff": 0.10,      # Weight for rack cooling capacity
-    "neighbor_stability": 0.10 # Weight for thermal stability of surrounding racks
-}
+
 
 
 def score_temperature_safety(pred_temp: float) -> float:
@@ -172,16 +141,17 @@ class HeatWiseDecisionEngine:
         for r_id in range(1, TOTAL_RACKS + 1):
             rack = sim.racks[r_id]
 
-            # Check basic GPU feasibility
+            # Check basic GPU and Memory feasibility
             has_gpu_capacity = (rack["gpu_available_pct"] >= (workload.gpu_demand_pct / 4.0))
+            has_mem_capacity = (rack["mem_available_pct"] >= (workload.memory_demand_pct / 4.0))
 
             # ML Temperature Prediction
-            pred_temp, temp_delta = self.predictor.predict_rack_placement(
-                rack,
-                workload.gpu_demand_pct,
-                workload.intensity_val,
-                workload.power_est_w
-            )
+            try:
+                pred_temp, temp_delta = self.predictor.predict_rack_placement(rack, workload)
+            except Exception:
+                # Fallback to physics simulation if ML is unavailable
+                pred_temp = sim.simulate_placement(r_id, workload.gpu_demand_pct, workload.memory_demand_pct, workload.power_est_w)["new_temp"]
+                temp_delta = pred_temp - rack["temperature"]
 
             pred_headroom = round(max(0.0, TEMP_CRITICAL - pred_temp), 1)
             pred_power_kw = round((rack["total_power_w"] + workload.power_est_w) / 1000.0, 2)
@@ -203,11 +173,13 @@ class HeatWiseDecisionEngine:
                 w_nbr * sub_nbr
             )
 
-            # Severe penalty if predicted to cause thermal hotspot (>75°C) or insufficient GPU
+            # Severe penalty if predicted to cause thermal hotspot (>75°C) or insufficient resources
             penalty = 0.0
             if is_hotspot_risk:
                 penalty += 45.0 + (pred_temp - TEMP_CRITICAL) * 5.0
             if not has_gpu_capacity:
+                penalty += 50.0
+            if not has_mem_capacity:
                 penalty += 50.0
 
             final_score = round(float(np.clip(raw_score - penalty, 0.0, 100.0)), 1)
@@ -215,7 +187,10 @@ class HeatWiseDecisionEngine:
             # Rejection / safety diagnosis
             is_rejected = False
             rejection_reason = "Passed all thermal and compute constraints."
-            if not has_gpu_capacity:
+            if not has_mem_capacity:
+                is_rejected = True
+                rejection_reason = f"Insufficient Memory capacity (Available: {rack['mem_available_pct']}%)."
+            elif not has_gpu_capacity:
                 is_rejected = True
                 rejection_reason = f"Insufficient GPU capacity (Available: {rack['gpu_available_pct']}%)."
             elif is_hotspot_risk:
@@ -227,6 +202,10 @@ class HeatWiseDecisionEngine:
             elif pred_temp >= 71.0:
                 rejection_reason = f"Elevated thermal risk (Predicted: {pred_temp}°C, Low Headroom: {pred_headroom}°C)."
 
+            # STEP 5B: Measure prediction error during placement
+            actual_res = sim.simulate_placement(r_id, workload.gpu_demand_pct, workload.memory_demand_pct, workload.power_est_w)
+            pred_error = round(actual_res["new_temp"] - pred_temp, 2)
+
             candidate_evaluations.append({
                 "rack_id": r_id,
                 "rack_name": f"Rack {r_id}",
@@ -235,6 +214,7 @@ class HeatWiseDecisionEngine:
                 "temp_delta": temp_delta,
                 "predicted_headroom": pred_headroom,
                 "gpu_available_pct": rack["gpu_available_pct"],
+                "mem_available_pct": rack["mem_available_pct"],
                 "current_power_kw": round(rack["total_power_w"] / 1000.0, 2),
                 "predicted_power_kw": pred_power_kw,
                 "cooling_capacity_pct": rack["cooling_capacity_pct"],
@@ -250,24 +230,32 @@ class HeatWiseDecisionEngine:
                 "is_hotspot_risk": is_hotspot_risk,
                 "is_rejected": is_rejected,
                 "rejection_reason": rejection_reason,
-                "has_gpu_capacity": has_gpu_capacity
+                "has_gpu_capacity": has_gpu_capacity,
+                "has_mem_capacity": has_mem_capacity,
+                "prediction_error": pred_error
             })
 
         # Sort candidate evaluations by HeatWise score descending
         candidate_evaluations.sort(key=lambda x: x["heatwise_score"], reverse=True)
-        recommended = candidate_evaluations[0]
+        
+        feasible_hw = [c for c in candidate_evaluations if not c["is_rejected"]]
+        if feasible_hw:
+            recommended = max(feasible_hw, key=lambda x: x["heatwise_score"])
+        else:
+            recommended = candidate_evaluations[0]
 
         # Determine baseline scheduler choices for direct comparison
         # 1. Least-Loaded Choice: rack with highest gpu_available_pct among feasible
-        feasible_gpu = [c for c in candidate_evaluations if c["has_gpu_capacity"]]
-        least_loaded_choice = max(feasible_gpu, key=lambda x: x["gpu_available_pct"]) if feasible_gpu else candidate_evaluations[0]
+        feasible_racks = [c for c in candidate_evaluations if c["has_gpu_capacity"] and c["has_mem_capacity"]]
+        least_loaded_choice = max(feasible_racks, key=lambda x: x["gpu_available_pct"]) if feasible_racks else candidate_evaluations[0]
 
         # 2. Round Robin Choice: next rack index (e.g. rack 1 if free, or arbitrary free rack)
-        round_robin_choice = feasible_gpu[0] if feasible_gpu else candidate_evaluations[0]
+        round_robin_choice = feasible_racks[0] if feasible_racks else candidate_evaluations[0]
 
         # Explainability why winner was chosen
         winner_reasons = [
             f"GPU Capacity: {recommended['gpu_available_pct']}% available (Sufficient for {workload.gpu_demand_pct}% demand)",
+            f"Memory Capacity: {recommended['mem_available_pct']}% available (Sufficient for {workload.memory_demand_pct}% demand)",
             f"Safe Predicted Temperature: {recommended['predicted_temp']}°C (+{recommended['temp_delta']}°C rise)",
             f"Thermal Headroom: {recommended['predicted_headroom']}°C buffer remaining below {TEMP_CRITICAL}°C limit",
             f"Cooling Efficiency: {recommended['cooling_capacity_pct']}% CRAC airflow capability",
@@ -323,9 +311,11 @@ def run_batch_simulation_benchmark(
     3. HeatWise
     Returns comparative metrics, summary cards, and timeline traces.
     """
-    np.random.seed(seed)
     predictor = get_trained_predictor()
     engine = HeatWiseDecisionEngine(predictor=predictor)
+
+    # Dedicated isolated RNG stream for benchmark workload generation
+    rng = np.random.RandomState(seed)
 
     # Generate identical stream of simulated workloads
     workload_types = ["AI Training", "AI Inference", "LLM Inference", "Image Processing"]
@@ -334,9 +324,9 @@ def run_batch_simulation_benchmark(
 
     workload_stream = []
     for i in range(1, num_workloads + 1):
-        w_type = np.random.choice(workload_types, p=[0.35, 0.30, 0.25, 0.10])
-        w_int = np.random.choice(intensities, p=[0.20, 0.40, 0.30, 0.10])
-        w_pri = np.random.choice(priorities, p=[0.30, 0.50, 0.20])
+        w_type = rng.choice(workload_types, p=[0.35, 0.30, 0.25, 0.10])
+        w_int = rng.choice(intensities, p=[0.20, 0.40, 0.30, 0.10])
+        w_pri = rng.choice(priorities, p=[0.30, 0.50, 0.20])
         workload_stream.append(Workload(
             workload_type=w_type,
             intensity=w_int,
@@ -350,9 +340,9 @@ def run_batch_simulation_benchmark(
     sim_hw = DataCenterSimulation(scenario=base_scenario)
 
     metrics_tracker = {
-        "Round Robin": {"peak_temp": 0.0, "hotspots": 0, "sla_violations": 0, "total_power_kwh": 0.0, "temps_history": []},
-        "Least Loaded": {"peak_temp": 0.0, "hotspots": 0, "sla_violations": 0, "total_power_kwh": 0.0, "temps_history": []},
-        "HeatWise": {"peak_temp": 0.0, "hotspots": 0, "sla_violations": 0, "total_power_kwh": 0.0, "temps_history": []}
+        "Round Robin": {"peak_temp": 0.0, "hotspots": 0, "sla_violations": 0, "total_power_kwh": 0.0, "placement_failures": 0, "temps_history": []},
+        "Least Loaded": {"peak_temp": 0.0, "hotspots": 0, "sla_violations": 0, "total_power_kwh": 0.0, "placement_failures": 0, "temps_history": []},
+        "HeatWise": {"peak_temp": 0.0, "hotspots": 0, "sla_violations": 0, "total_power_kwh": 0.0, "placement_failures": 0, "temps_history": []}
     }
 
     timeline_data = []
@@ -364,18 +354,27 @@ def run_batch_simulation_benchmark(
         for _ in range(TOTAL_RACKS):
             candidate_id = rr_idx
             rr_idx = (rr_idx % TOTAL_RACKS) + 1
-            if sim_rr.racks[candidate_id]["gpu_available_pct"] >= (wl.gpu_demand_pct / 4.0):
+            rack = sim_rr.racks[candidate_id]
+            if rack["gpu_available_pct"] >= (wl.gpu_demand_pct / 4.0):
                 rr_chosen_rack = candidate_id
                 break
         if rr_chosen_rack is None:
             rr_chosen_rack = 1
 
-        rr_res = sim_rr.simulate_placement(rr_chosen_rack, wl.gpu_demand_pct, wl.power_est_w)
-        # Apply changes to sim_rr state
-        sim_rr.racks[rr_chosen_rack]["total_power_w"] = rr_res["new_power_w"]
-        sim_rr.racks[rr_chosen_rack]["avg_gpu_util"] = rr_res["new_gpu_util"]
-        sim_rr.racks[rr_chosen_rack]["temperature"] = rr_res["new_temp"]
-        sim_rr.racks[rr_chosen_rack]["gpu_available_pct"] = round(100.0 - rr_res["new_gpu_util"], 1)
+        rr_rack = sim_rr.racks[rr_chosen_rack]
+        if rr_rack["mem_available_pct"] < (wl.memory_demand_pct / 4.0) or rr_rack["gpu_available_pct"] < (wl.gpu_demand_pct / 4.0):
+            metrics_tracker["Round Robin"]["placement_failures"] += 1
+        else:
+            rr_res = sim_rr.simulate_placement(rr_chosen_rack, wl.gpu_demand_pct, wl.memory_demand_pct, wl.power_est_w)
+            sim_rr.racks[rr_chosen_rack]["total_power_w"] = rr_res["new_power_w"]
+            sim_rr.racks[rr_chosen_rack]["avg_gpu_util"] = rr_res["new_gpu_util"]
+            sim_rr.racks[rr_chosen_rack]["avg_mem_util"] = rr_res["new_mem_util"]
+            sim_rr.racks[rr_chosen_rack]["temperature"] = rr_res["new_temp"]
+            sim_rr.racks[rr_chosen_rack]["gpu_available_pct"] = round(100.0 - rr_res["new_gpu_util"], 1)
+            sim_rr.racks[rr_chosen_rack]["mem_available_pct"] = round(100.0 - rr_res["new_mem_util"], 1)
+            sim_rr.racks[rr_chosen_rack].setdefault("active_workloads", []).append({
+                "gpu_pct": wl.gpu_demand_pct, "mem_pct": wl.memory_demand_pct, "power_w": wl.power_est_w, "duration_remaining": max(1, wl.duration_s // 15)
+            })
 
         # 2. Least Loaded Allocation
         ll_candidates = [
@@ -388,20 +387,43 @@ def run_batch_simulation_benchmark(
         else:
             ll_chosen_rack = max(sim_ll.racks.items(), key=lambda x: x[1]["gpu_available_pct"])[0]
 
-        ll_res = sim_ll.simulate_placement(ll_chosen_rack, wl.gpu_demand_pct, wl.power_est_w)
-        sim_ll.racks[ll_chosen_rack]["total_power_w"] = ll_res["new_power_w"]
-        sim_ll.racks[ll_chosen_rack]["avg_gpu_util"] = ll_res["new_gpu_util"]
-        sim_ll.racks[ll_chosen_rack]["temperature"] = ll_res["new_temp"]
-        sim_ll.racks[ll_chosen_rack]["gpu_available_pct"] = round(100.0 - ll_res["new_gpu_util"], 1)
+        ll_rack = sim_ll.racks[ll_chosen_rack]
+        if ll_rack["mem_available_pct"] < (wl.memory_demand_pct / 4.0) or ll_rack["gpu_available_pct"] < (wl.gpu_demand_pct / 4.0):
+            metrics_tracker["Least Loaded"]["placement_failures"] += 1
+        else:
+            ll_res = sim_ll.simulate_placement(ll_chosen_rack, wl.gpu_demand_pct, wl.memory_demand_pct, wl.power_est_w)
+            sim_ll.racks[ll_chosen_rack]["total_power_w"] = ll_res["new_power_w"]
+            sim_ll.racks[ll_chosen_rack]["avg_gpu_util"] = ll_res["new_gpu_util"]
+            sim_ll.racks[ll_chosen_rack]["avg_mem_util"] = ll_res["new_mem_util"]
+            sim_ll.racks[ll_chosen_rack]["temperature"] = ll_res["new_temp"]
+            sim_ll.racks[ll_chosen_rack]["gpu_available_pct"] = round(100.0 - ll_res["new_gpu_util"], 1)
+            sim_ll.racks[ll_chosen_rack]["mem_available_pct"] = round(100.0 - ll_res["new_mem_util"], 1)
+            sim_ll.racks[ll_chosen_rack].setdefault("active_workloads", []).append({
+                "gpu_pct": wl.gpu_demand_pct, "mem_pct": wl.memory_demand_pct, "power_w": wl.power_est_w, "duration_remaining": max(1, wl.duration_s // 15)
+            })
 
         # 3. HeatWise Allocation
         hw_eval = engine.evaluate_placement(sim_hw, wl)
         hw_chosen_rack = hw_eval["recommended_rack"]["rack_id"]
-        hw_res = sim_hw.simulate_placement(hw_chosen_rack, wl.gpu_demand_pct, wl.power_est_w)
-        sim_hw.racks[hw_chosen_rack]["total_power_w"] = hw_res["new_power_w"]
-        sim_hw.racks[hw_chosen_rack]["avg_gpu_util"] = hw_res["new_gpu_util"]
-        sim_hw.racks[hw_chosen_rack]["temperature"] = hw_res["new_temp"]
-        sim_hw.racks[hw_chosen_rack]["gpu_available_pct"] = round(100.0 - hw_res["new_gpu_util"], 1)
+        
+        if hw_eval["recommended_rack"]["is_rejected"]:
+            metrics_tracker["HeatWise"]["placement_failures"] += 1
+        else:
+            hw_res = sim_hw.simulate_placement(hw_chosen_rack, wl.gpu_demand_pct, wl.memory_demand_pct, wl.power_est_w)
+            sim_hw.racks[hw_chosen_rack]["total_power_w"] = hw_res["new_power_w"]
+            sim_hw.racks[hw_chosen_rack]["avg_gpu_util"] = hw_res["new_gpu_util"]
+            sim_hw.racks[hw_chosen_rack]["avg_mem_util"] = hw_res["new_mem_util"]
+            sim_hw.racks[hw_chosen_rack]["temperature"] = hw_res["new_temp"]
+            sim_hw.racks[hw_chosen_rack]["gpu_available_pct"] = round(100.0 - hw_res["new_gpu_util"], 1)
+            sim_hw.racks[hw_chosen_rack]["mem_available_pct"] = round(100.0 - hw_res["new_mem_util"], 1)
+            sim_hw.racks[hw_chosen_rack].setdefault("active_workloads", []).append({
+                "gpu_pct": wl.gpu_demand_pct, "mem_pct": wl.memory_demand_pct, "power_w": wl.power_est_w, "duration_remaining": max(1, wl.duration_s // 15)
+            })
+
+        # Advance time by 1 step (15 seconds)
+        sim_rr.advance_time(1)
+        sim_ll.advance_time(1)
+        sim_hw.advance_time(1)
 
         # Record step temperatures across algorithms
         rr_all_temps = [r["temperature"] for r in sim_rr.racks.values()]
@@ -429,15 +451,18 @@ def run_batch_simulation_benchmark(
         sla_viols = sum(1 for t in temps if t >= TEMP_MAX_SAFE) + hotspots
         total_energy_kwh = (sum(powers) / 1000.0) * (num_workloads * 0.25)  # est energy
 
-        metrics_tracker[name] = {
+        avg_headroom = round(float(np.mean([max(0, TEMP_CRITICAL - t) for t in temps])), 1)
+
+        metrics_tracker[name].update({
             "peak_temp": round(peak_t, 1),
             "avg_temp": round(float(np.mean(temps)), 1),
             "temp_std": round(float(np.std(temps)), 1),
             "hotspots": hotspots,
             "sla_violations": sla_viols,
+            "avg_headroom": avg_headroom,
             "total_power_kw": round(sum(powers) / 1000.0, 2),
             "total_energy_kwh": round(total_energy_kwh, 2)
-        }
+        })
 
     comparison_df = pd.DataFrame([
         {
@@ -453,6 +478,13 @@ def run_batch_simulation_benchmark(
             "Least Loaded": metrics_tracker["Least Loaded"]["hotspots"],
             "HeatWise": metrics_tracker["HeatWise"]["hotspots"],
             "HeatWise Advantage": f"{max(metrics_tracker['Round Robin']['hotspots'], metrics_tracker['Least Loaded']['hotspots']) - metrics_tracker['HeatWise']['hotspots']} Fewer Hotspots"
+        },
+        {
+            "Metric": "Placement Failures",
+            "Round Robin": metrics_tracker["Round Robin"]["placement_failures"],
+            "Least Loaded": metrics_tracker["Least Loaded"]["placement_failures"],
+            "HeatWise": metrics_tracker["HeatWise"]["placement_failures"],
+            "HeatWise Advantage": "Resource Aware"
         },
         {
             "Metric": "Thermal SLA Violations",

@@ -1,0 +1,35 @@
+{
+  "artifact_filename": "heatwise_rf_10k.joblib",
+  "sha256": "5e35ab92623a5cb8c1e640b5bbd78adaa52c149f68c200cc5f13e1f87787c1de",
+  "model_type": "RandomForestRegressor",
+  "hyperparameters": {
+    "n_estimators": 120,
+    "max_depth": 14,
+    "min_samples_split": 4,
+    "min_samples_leaf": 2,
+    "random_state": 42,
+    "n_jobs": 1
+  },
+  "features": [
+    "cpu_utilization",
+    "gpu_utilization",
+    "memory_utilization",
+    "inlet_temperature",
+    "local_power_kw",
+    "neighbor_temperature",
+    "neighbor_utilization",
+    "cooling_capacity",
+    "recirculation_factor",
+    "workload_AI_Training",
+    "workload_AI_Inference",
+    "workload_LLM",
+    "workload_Image_Processing",
+    "workload_intensity_val",
+    "workload_gpu_demand",
+    "workload_mem_demand",
+    "workload_power_est"
+  ],
+  "feature_count": 17,
+  "training_sample_count": 10000,
+  "dataset_type": "synthetic sequential transitions"
+}
