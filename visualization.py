@@ -9,7 +9,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import Dict, List, Any, Optional, Tuple
-from simulation import GRID_ROWS, GRID_COLS, RACK_COORDS, TEMP_CRITICAL, TEMP_NORMAL_MAX, TEMP_WARM_MAX
+from simulation import RACK_COORDS
+from config import GRID_ROWS, GRID_COLS, TEMP_CRITICAL, TEMP_NORMAL_MAX, TEMP_WARM_MAX
 
 
 # Dark Theme Colors for Data Center Aesthetics

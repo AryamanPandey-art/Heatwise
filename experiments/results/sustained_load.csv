@@ -1,0 +1,4 @@
+experiment,scheduler,timesteps,placement_failures,fallback_invocations,peak_temp,avg_temp,temp_std,hotspots,sla_violations,avg_headroom,total_power_kw,total_energy_kwh
+Sustained High-Load,Round Robin,60,22,0,92.0,76.7,12.16,5,10,4.7,126.61,1899.2
+Sustained High-Load,Least Loaded,60,23,0,90.2,77.9,6.7,7,12,1.4,131.47,1972.1
+Sustained High-Load,HeatWise,60,24,24,90.2,78.0,6.39,7,12,1.3,132.01,1980.2

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeatWise | Thermal Intelligence for Sustainable Data Centers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Configurable Application URL: Set window.HEATWISE_APP_URL before scripts or use fallback -->
+    <script>
+        window.HEATWISE_APP_URL = window.HEATWISE_APP_URL || 'http://localhost:8501';
+    </script>
+</head>
+<body>
+    <!-- Theme Toggle Floating & Nav Controls -->
+    <button class="theme-toggle-floating" id="themeToggle" aria-label="Toggle theme">
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-content">
+            <div class="logo">
+                <!-- Dual flame/droplet icon matching reference -->
+                <div class="logo-icon-wrap">
+                    <svg class="logo-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 3C18 3 8 13.2 8 21.6C8 27.34 12.48 32 18 32C23.52 32 28 27.34 28 21.6C28 13.2 18 3 18 3Z" fill="url(#blue-drop-grad)"/>
+                        <path d="M18 9C18 9 12 16.5 12 22.5C12 26.36 14.69 29.5 18 29.5C21.31 29.5 24 26.36 24 22.5C24 16.5 18 9 18 9Z" fill="url(#orange-flame-grad)"/>
+                        <path d="M18 15C18 15 15 19.5 15 23.5C15 25.43 16.34 27 18 27C19.66 27 21 25.43 21 23.5C21 19.5 18 15 18 15Z" fill="#ffedd5"/>
+                        <defs>
+                            <linearGradient id="blue-drop-grad" x1="8" y1="3" x2="28" y2="32" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#0284c7"/>
+                                <stop offset="1" stop-color="#0369a1"/>
+                            </linearGradient>
+                            <linearGradient id="orange-flame-grad" x1="12" y1="9" x2="24" y2="29.5" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#f97316"/>
+                                <stop offset="1" stop-color="#ea580c"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-title">HeatWise</span>
+                    <span class="logo-subtitle">Thermal Intelligence for Sustainable Data Centers</span>
+                </div>
+            </div>
+            
+            <div class="nav-links">
+                <a href="#home" class="nav-item active">Home</a>
+                <a href="#features" class="nav-item">Features</a>
+                <a href="#simulation" class="nav-item">Simulation</a>
+                <a href="#benchmark" class="nav-item">Benchmark</a>
+                <a href="#about" class="nav-item">About</a>
+            </div>
+
+            <div class="nav-actions">
+                <!-- Theme toggle inline button -->
+                <button class="nav-theme-btn" id="navThemeToggle" title="Toggle Light/Dark Theme">
+                    <span class="theme-dot"></span>
+                    <span class="theme-text">Theme</span>
+                </button>
+                <a href="http://localhost:8501" class="launch-app-btn" data-app-cta target="_blank" rel="noopener noreferrer">
+                    <span>Launch App</span>
+                    <svg class="btn-arrow" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="page-main">
+        <!-- Hero Section -->
+        <section id="home" class="hero-section">
+            <div class="hero-container">
+                <!-- Left Column: Copy & Actions -->
+                <div class="hero-left">
+                    <div class="hero-badge">
+                        <span class="badge-dot"></span>
+                        AI-POWERED &bull; PHYSICS-GROUNDED &bull; SUSTAINABLE
+                    </div>
+                    <h1 class="hero-headline">
+                        Smarter<br/>
+                        Workload Placement<br/>
+                        for a <span class="highlight-cooler">Cooler</span> Tomorrow
+                    </h1>
+                    <p class="hero-description">
+                        HeatWise predicts the thermal consequences of workload placement and selects safer, cooler rack assignments using physics-grounded simulation and machine learning.
+                    </p>
+                    <div class="hero-ctas">
+                        <a href="http://localhost:8501" class="btn-primary" data-app-cta target="_blank" rel="noopener noreferrer">
+                            <span>Launch Interactive Demo</span>
+                            <svg class="btn-arrow" viewBox="0 0 16 16" fill="none">
+                                <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
+                        <a href="#simulation" class="btn-secondary">
+                            <div class="play-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <span>Watch Overview</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Column: Visual with Three.js 3D Datacenter, Markers & AI HUD -->
+                <div class="hero-right">
+                    <div class="datacenter-visual-stage">
+                        <!-- Three.js 3D Interactive Data Center Canvas -->
+                        <div id="three-canvas-container" class="three-canvas-container">
+                            <div class="backdrop-gradient-overlay"></div>
+                        </div>
+
+                        <!-- 3 Thermal Telemetry Markers Projected in Real Time from 3D Racks -->
+                        <div class="telemetry-pin pin-critical marker-3">
+                            <div class="pin-inner">
+                                <div class="pin-header">
+                                    <svg class="pin-warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                    <span class="pin-temp">88°C</span>
+                                </div>
+                                <span class="pin-status">Overheating</span>
+                            </div>
+                            <div class="pin-glow-ring"></div>
+                        </div>
+
+                        <div class="telemetry-pin pin-warning marker-2">
+                            <div class="pin-inner">
+                                <div class="pin-header">
+                                    <svg class="pin-warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                    <span class="pin-temp">72°C</span>
+                                </div>
+                                <span class="pin-status">High Load</span>
+                            </div>
+                            <div class="pin-glow-ring"></div>
+                        </div>
+
+                        <div class="telemetry-pin pin-optimal marker-1">
+                            <div class="pin-inner">
+                                <div class="pin-header">
+                                    <span class="pin-temp">46°C</span>
+                                </div>
+                                <span class="pin-status">Optimal</span>
+                            </div>
+                            <div class="pin-glow-ring"></div>
+                        </div>
+
+                        <!-- Floating HeatWise AI Card with Sparkline & Checklist -->
+                        <div class="hero-ai-card">
+                            <div class="ai-card-glow-layer"></div>
+                            <div class="ai-card-inner">
+                                <div class="ai-card-header">
+                                    <div class="ai-title-wrap">
+                                        <span class="ai-spark-icon">⚡</span>
+                                        <span class="ai-title">HeatWise AI</span>
+                                    </div>
+                                    <!-- Sparkline Chart SVG -->
+                                    <div class="ai-sparkline-wrap">
+                                        <svg class="ai-sparkline-svg" viewBox="0 0 80 28" fill="none">
+                                            <path d="M2 18L18 19L32 14L46 16L60 6L78 4" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M2 18L18 19L32 14L46 16L60 6L78 4V28H2V18Z" fill="url(#sparkline-fill)" opacity="0.25"/>
+                                            <circle cx="78" cy="4" r="3" fill="#22d3ee"/>
+                                            <defs>
+                                                <linearGradient id="sparkline-fill" x1="40" y1="4" x2="40" y2="28" gradientUnits="userSpaceOnUse">
+                                                    <stop stop-color="#22d3ee"/>
+                                                    <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <ul class="ai-features-list">
+                                    <li class="ai-feature-item">
+                                        <div class="feature-left">
+                                            <span class="check-badge">✓</span>
+                                            <span class="feature-text">Predict temperatures</span>
+                                        </div>
+                                        <span class="feature-chevron">&rsaquo;</span>
+                                    </li>
+                                    <li class="ai-feature-item">
+                                        <div class="feature-left">
+                                            <span class="check-badge">✓</span>
+                                            <span class="feature-text">Evaluate candidates</span>
+                                        </div>
+                                        <span class="feature-chevron">&rsaquo;</span>
+                                    </li>
+                                    <li class="ai-feature-item">
+                                        <div class="feature-left">
+                                            <span class="check-badge">✓</span>
+                                            <span class="feature-text">Choose optimal rack</span>
+                                        </div>
+                                        <span class="feature-chevron">&rsaquo;</span>
+                                    </li>
+                                    <li class="ai-feature-item">
+                                        <div class="feature-left">
+                                            <span class="check-badge">✓</span>
+                                            <span class="feature-text">Maintain safe operation</span>
+                                        </div>
+                                        <span class="feature-chevron">&rsaquo;</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Capability Strip Section -->
+        <section class="metrics-strip-section" id="metrics-strip">
+            <div class="metrics-grid">
+                <!-- 1: Thermal-aware -->
+                <div class="metric-card">
+                    <div class="metric-icon-wrap icon-risk">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                        </svg>
+                    </div>
+                    <div class="metric-info">
+                        <div class="metric-val">Thermal-Aware</div>
+                        <div class="metric-desc">Proactive hotspot prevention</div>
+                    </div>
+                </div>
+
+                <!-- 2: Physics-grounded -->
+                <div class="metric-card">
+                    <div class="metric-icon-wrap icon-physics">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </div>
+                    <div class="metric-info">
+                        <div class="metric-val">Physics-Grounded</div>
+                        <div class="metric-desc">Reduced-order thermal model</div>
+                    </div>
+                </div>
+
+                <!-- 3: Explainable decisions -->
+                <div class="metric-card">
+                    <div class="metric-icon-wrap icon-efficiency">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                    </div>
+                    <div class="metric-info">
+                        <div class="metric-val">Explainable</div>
+                        <div class="metric-desc">Multi-factor scoring decisions</div>
+                    </div>
+                </div>
+
+                <!-- 4: What-if simulation -->
+                <div class="metric-card">
+                    <div class="metric-icon-wrap icon-realtime">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                    </div>
+                    <div class="metric-info">
+                        <div class="metric-val">What-If Simulation</div>
+                        <div class="metric-desc">Sub-second candidate evaluation</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section matching reference -->
+        <section id="features" class="features-section">
+            <div class="section-heading-center">
+                <h2 class="section-title">A Smarter, Cooler, More Sustainable Data Center</h2>
+                <p class="section-subtitle">Explore how HeatWise combines AI and physical modeling to make intelligent workload placement decisions.</p>
+            </div>
+
+            <div class="features-cards-grid">
+                <!-- Card 1: AI-Powered Prediction -->
+                <div class="feature-box">
+                    <div class="feature-icon-bubble bubble-cyan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            <rect x="9" y="9" width="6" height="6"/>
+                            <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">AI-Powered<br/>Prediction</h3>
+                    <p class="feature-text">Machine learning estimates post-placement temperatures with high accuracy.</p>
+                    <div class="feature-arrow-btn" aria-label="Learn more">
+                        <svg viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Card 2: Physics-Based Simulation -->
+                <div class="feature-box">
+                    <div class="feature-icon-bubble bubble-orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 12c2.5-3 5-3 7.5 0s5 3 7.5 0 5-3 7.5 0"/>
+                            <path d="M2 6c2.5-3 5-3 7.5 0s5 3 7.5 0 5-3 7.5 0"/>
+                            <path d="M2 18c2.5-3 5-3 7.5 0s5 3 7.5 0 5-3 7.5 0"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Physics-Based<br/>Simulation</h3>
+                    <p class="feature-text">Built on a realistic thermal model of data center environments.</p>
+                    <div class="feature-arrow-btn" aria-label="Learn more">
+                        <svg viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Card 3: Intelligent Workload Placement -->
+                <div class="feature-box">
+                    <div class="feature-icon-bubble bubble-green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="8" rx="2"/>
+                            <rect x="2" y="14" width="20" height="8" rx="2"/>
+                            <line x1="6" y1="6" x2="6.01" y2="6"/>
+                            <line x1="6" y1="18" x2="6.01" y2="18"/>
+                            <line x1="10" y1="6" x2="18" y2="6"/>
+                            <line x1="10" y1="18" x2="18" y2="18"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Intelligent<br/>Workload Placement</h3>
+                    <p class="feature-text">Selects the best rack based on temperature, resources, and future risk.</p>
+                    <div class="feature-arrow-btn" aria-label="Learn more">
+                        <svg viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Card 4: Sustainable Operations -->
+                <div class="feature-box">
+                    <div class="feature-icon-bubble bubble-purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+                            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Sustainable<br/>Operations</h3>
+                    <p class="feature-text">Lower temperatures. Higher efficiency. A greener future.</p>
+                    <div class="feature-arrow-btn" aria-label="Learn more">
+                        <svg viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sustainability Panoramic Banner matching reference -->
+        <section class="sustainability-banner-section">
+            <div class="sustainability-panoramic-card">
+                <!-- Background Image (Adaptive to theme) -->
+                <div class="banner-media-container">
+                    <img src="assets/banner_dark.jpg" alt="Sustainable Earth Data Center" class="banner-bg-img dark-img">
+                    <img src="assets/banner_light.jpg" alt="Eco Data Center Landscape" class="banner-bg-img light-img">
+                    <div class="banner-vignette-overlay"></div>
+                </div>
+
+                <!-- Left Content -->
+                <div class="banner-left-content">
+                    <h2 class="banner-heading">
+                        Designed for More Thermally Aware AI Infrastructure
+                    </h2>
+                    <p class="banner-subheading">
+                        Explore how thermal-aware workload placement can support more efficient infrastructure decisions, prevent localized hotspots, and lower thermal risk.
+                    </p>
+                    <a href="http://localhost:8501" class="btn-primary banner-cta" data-app-cta target="_blank" rel="noopener noreferrer">
+                        <span>Launch the App</span>
+                        <svg class="btn-arrow" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                </div>
+
+                <!-- Right Glassmorphism Card with 3 Pillars -->
+                <div class="banner-right-card">
+                    <div class="pillar-row">
+                        <div class="pillar-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+                            </svg>
+                        </div>
+                        <span class="pillar-title">Sustainable AI</span>
+                    </div>
+
+                    <div class="pillar-row">
+                        <div class="pillar-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="2" width="20" height="8" rx="2"/>
+                                <rect x="2" y="14" width="20" height="8" rx="2"/>
+                                <line x1="6" y1="6" x2="6.01" y2="6"/>
+                                <line x1="6" y1="18" x2="6.01" y2="18"/>
+                            </svg>
+                        </div>
+                        <span class="pillar-title">Efficient Infrastructure</span>
+                    </div>
+
+                    <div class="pillar-row">
+                        <div class="pillar-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="2" y1="12" x2="22" y2="12"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
+                        </div>
+                        <span class="pillar-title">A Cooler Planet</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Simulation Demo Section -->
+        <section id="simulation" class="simulation-section">
+            <div class="section-heading-center">
+                <h2 class="section-title">Interactive Thermal Simulation</h2>
+                <p class="section-subtitle">Explore how workload placement changes rack temperature, thermal headroom, power, and neighboring heat effects.</p>
+            </div>
+            
+            <div class="simulation-interactive-container">
+                <div class="simulation-viz-col">
+                    <div class="racks-matrix-grid" id="demoRacksGrid">
+                        <!-- Racks dynamically rendered by JS -->
+                    </div>
+                    <div class="simulation-status-caption">
+                        <span class="status-pulse-dot"></span> Interactive reduced-order thermal simulation prototype
+                    </div>
+                </div>
+
+                <div class="simulation-control-col">
+                    <div class="control-panel-card">
+                        <div class="control-group">
+                            <label class="control-label">Workload Profile</label>
+                            <select id="wlType" class="control-select">
+                                <option value="AI Training">AI Training (High Load - 80% GPU)</option>
+                                <option value="LLM Inference">LLM Inference (85% Memory)</option>
+                                <option value="Image Processing">Edge Inference (Light Load)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-metrics-row">
+                            <div class="control-metric-box">
+                                <span class="cm-label">GPU Demand</span>
+                                <span class="cm-val" id="wlGpu">80%</span>
+                            </div>
+                            <div class="control-metric-box">
+                                <span class="cm-label">Memory Demand</span>
+                                <span class="cm-val" id="wlMem">70%</span>
+                            </div>
+                            <div class="control-metric-box">
+                                <span class="cm-label">Power Draw</span>
+                                <span class="cm-val" id="wlPwr">2.0 kW</span>
+                            </div>
+                        </div>
+
+                        <div class="control-group candidates-group">
+                            <label class="control-label">Candidate Racks Evaluation</label>
+                            <ul class="candidates-score-list" id="candidateList">
+                                <!-- Populated dynamically by JS -->
+                            </ul>
+                        </div>
+
+                        <div class="decision-outcome-box">
+                            <div class="decision-top-line">
+                                <span class="decision-label">Optimal Placement:</span>
+                                <span class="decision-target-id" id="decisionTarget">RACK 07</span>
+                            </div>
+                            <p class="decision-justification" id="decisionReason">"Strong cooling airflow + lower neighboring heat flux + 18.4°C thermal headroom"</p>
+                        </div>
+
+                        <button class="btn-simulate" id="runSimulationBtn">Simulate Workload Placement</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benchmark Section -->
+        <section id="benchmark" class="benchmark-section">
+            <div class="section-heading-center">
+                <h2 class="section-title">Benchmark the Decision</h2>
+                <p class="section-subtitle">Comparative benchmark over 15 simulated AI workload placements</p>
+            </div>
+
+            <div class="benchmark-cards-grid">
+                <!-- Card 1: Round Robin -->
+                <div class="bench-comparison-card">
+                    <div class="bench-card-header">
+                        <h3>Round Robin</h3>
+                        <span class="sched-type">Naive</span>
+                    </div>
+                    <div class="bench-temp-display">67.2°C</div>
+                    <ul class="bench-metrics-checklist">
+                        <li class="bench-li warn"><span class="dot"></span> 3 Thermal Hotspots</li>
+                        <li class="bench-li warn"><span class="dot"></span> 5 SLA Throttle Violations</li>
+                        <li class="bench-li crit"><span class="dot"></span> 1 Placement Failure</li>
+                    </ul>
+                </div>
+
+                <!-- Card 2: Least Loaded -->
+                <div class="bench-comparison-card">
+                    <div class="bench-card-header">
+                        <h3>Least Loaded</h3>
+                        <span class="sched-type">Heuristic</span>
+                    </div>
+                    <div class="bench-temp-display">67.6°C</div>
+                    <ul class="bench-metrics-checklist">
+                        <li class="bench-li warn"><span class="dot"></span> 3 Thermal Hotspots</li>
+                        <li class="bench-li crit"><span class="dot"></span> 6 SLA Throttle Violations</li>
+                        <li class="bench-li safe"><span class="dot"></span> 0 Placement Failures</li>
+                    </ul>
+                </div>
+
+                <!-- Card 3: HeatWise (Winner) -->
+                <div class="bench-comparison-card winner-card">
+                    <div class="winner-crown-badge">Optimal Choice</div>
+                    <div class="bench-card-header">
+                        <h3>HeatWise AI</h3>
+                        <span class="sched-type highlight">Physics + ML</span>
+                    </div>
+                    <div class="bench-temp-display text-gradient-blue">66.9°C</div>
+                    <ul class="bench-metrics-checklist">
+                        <li class="bench-li safe"><span class="dot"></span> 2 Hotspots (-33%)</li>
+                        <li class="bench-li safe"><span class="dot"></span> 4 SLA Violations (-33%)</li>
+                        <li class="bench-li safe"><span class="dot"></span> 0 Placement Failures</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="benchmark-disclaimer">All schedulers evaluated using deterministic reduced-order physics simulation with identical thermal envelope initial state.</p>
+        </section>
+
+        <!-- Architecture Flow Section -->
+        <section id="about" class="architecture-section">
+            <div class="section-heading-center">
+                <h2 class="section-title">Hybrid AI & Physics Engine</h2>
+                <p class="section-subtitle">How HeatWise predicts thermal consequences and places workloads</p>
+            </div>
+
+            <div class="architecture-flow-wrapper">
+                <div class="arch-step-node">
+                    <div class="arch-step-num">01</div>
+                    <div class="arch-step-title">Telemetry Ingestion</div>
+                    <div class="arch-step-desc">Real-time rack inlet/outlet sensors and GPU power draw</div>
+                </div>
+                <div class="arch-flow-connector"></div>
+                <div class="arch-step-node">
+                    <div class="arch-step-num">02</div>
+                    <div class="arch-step-title">ML Surrogate</div>
+                    <div class="arch-step-desc">Sub-millisecond inference predicts transient thermal response</div>
+                </div>
+                <div class="arch-flow-connector"></div>
+                <div class="arch-step-node">
+                    <div class="arch-step-num">03</div>
+                    <div class="arch-step-title">Pareto Optimizer</div>
+                    <div class="arch-step-desc">Scores candidate nodes against cooling limits and SLA</div>
+                </div>
+                <div class="arch-flow-connector"></div>
+                <div class="arch-step-node node-highlight">
+                    <div class="arch-step-num">04</div>
+                    <div class="arch-step-title">Optimal Placement</div>
+                    <div class="arch-step-desc">Workload dispatched safely with zero thermal hotspots</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="logo-icon-wrap sm">
+                    <svg class="logo-svg" viewBox="0 0 36 36" fill="none">
+                        <path d="M18 3C18 3 8 13.2 8 21.6C8 27.34 12.48 32 18 32C23.52 32 28 27.34 28 21.6C28 13.2 18 3 18 3Z" fill="url(#blue-drop-grad)"/>
+                        <path d="M18 9C18 9 12 16.5 12 22.5C12 26.36 14.69 29.5 18 29.5C21.31 29.5 24 26.36 24 22.5C24 16.5 18 9 18 9Z" fill="url(#orange-flame-grad)"/>
+                    </svg>
+                </div>
+                <span class="footer-brand-name">HeatWise</span>
+                <span class="footer-copy">&copy; 2026 HeatWise Research. Thermal-Aware AI Infrastructure.</span>
+            </div>
+            <div class="footer-links">
+                <a href="#home">Home</a>
+                <a href="#features">Features</a>
+                <a href="#simulation">Simulation</a>
+                <a href="#benchmark">Benchmark</a>
+                <a href="http://localhost:8501" data-app-cta target="_blank" rel="noopener noreferrer">App</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/three.min.js"></script>
+    <script src="three-scene.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

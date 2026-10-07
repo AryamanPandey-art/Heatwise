@@ -1,0 +1,47 @@
+[
+  {
+    "experiment": "Bursty Stress",
+    "scheduler": "Round Robin",
+    "total_workloads": 29,
+    "placement_failures": 5,
+    "fallback_invocations": 0,
+    "peak_temp": 90.4,
+    "avg_temp": 67.9,
+    "temp_std": 12.71,
+    "hotspots": 4,
+    "sla_violations": 7,
+    "avg_headroom": 9.8,
+    "total_power_kw": 103.38,
+    "total_energy_kwh": 749.5
+  },
+  {
+    "experiment": "Bursty Stress",
+    "scheduler": "Least Loaded",
+    "total_workloads": 29,
+    "placement_failures": 0,
+    "fallback_invocations": 0,
+    "peak_temp": 92.0,
+    "avg_temp": 67.1,
+    "temp_std": 11.83,
+    "hotspots": 3,
+    "sla_violations": 6,
+    "avg_headroom": 10.5,
+    "total_power_kw": 103.38,
+    "total_energy_kwh": 749.5
+  },
+  {
+    "experiment": "Bursty Stress",
+    "scheduler": "HeatWise",
+    "total_workloads": 29,
+    "placement_failures": 1,
+    "fallback_invocations": 1,
+    "peak_temp": 84.1,
+    "avg_temp": 66.9,
+    "temp_std": 9.35,
+    "hotspots": 3,
+    "sla_violations": 5,
+    "avg_headroom": 9.3,
+    "total_power_kw": 103.38,
+    "total_energy_kwh": 749.5
+  }
+]

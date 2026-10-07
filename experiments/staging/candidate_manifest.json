@@ -1,0 +1,103 @@
+{
+  "model_architecture": "RandomForestRegressor",
+  "hyperparameters": {
+    "n_estimators": 120,
+    "max_depth": 14,
+    "min_samples_split": 4,
+    "min_samples_leaf": 2,
+    "random_state": 42,
+    "n_jobs": 1
+  },
+  "features": {
+    "columns": [
+      "cpu_utilization",
+      "gpu_utilization",
+      "memory_utilization",
+      "inlet_temperature",
+      "local_power_kw",
+      "neighbor_temperature",
+      "neighbor_utilization",
+      "cooling_capacity",
+      "recirculation_factor",
+      "workload_AI_Training",
+      "workload_AI_Inference",
+      "workload_LLM",
+      "workload_Image_Processing",
+      "workload_intensity_val",
+      "workload_gpu_demand",
+      "workload_mem_demand",
+      "workload_power_est"
+    ],
+    "count": 17,
+    "labels": {
+      "cpu_utilization": "CPU Utilization (%)",
+      "gpu_utilization": "GPU Utilization (%)",
+      "memory_utilization": "Memory Utilization (%)",
+      "inlet_temperature": "Inlet Temperature (\u00b0C)",
+      "local_power_kw": "Rack Power (kW)",
+      "neighbor_temperature": "Neighbor Avg Temp (\u00b0C)",
+      "neighbor_utilization": "Neighbor Avg GPU Util (%)",
+      "cooling_capacity": "Cooling Capacity (%)",
+      "recirculation_factor": "Recirculation Factor",
+      "workload_AI_Training": "Is AI Training",
+      "workload_AI_Inference": "Is AI Inference",
+      "workload_LLM": "Is LLM Inference",
+      "workload_Image_Processing": "Is Image Processing",
+      "workload_intensity_val": "Workload Intensity (1-4)",
+      "workload_gpu_demand": "Workload GPU Demand (%)",
+      "workload_mem_demand": "Workload Memory Demand (%)",
+      "workload_power_est": "Estimated Added Power (W)"
+    }
+  },
+  "target": "post_workload_temp",
+  "anti_leakage_guarantee": "Strict pre-placement feature set; zero post-workload equilibrium variables.",
+  "dataset_10k": {
+    "total_samples": 10000,
+    "total_episodes": 42,
+    "max_steps_per_episode": 20,
+    "scenarios": [
+      "Normal Operation",
+      "GPU Surge",
+      "Cooling Degradation",
+      "Thermal Hotspot",
+      "High AI Workload"
+    ]
+  },
+  "model_A_grouped_holdout": {
+    "artifact_path": "/Users/Yurirain/Downloads/Heatwise/experiments/staging/model_A_grouped_holdout.joblib",
+    "train_samples": 8080,
+    "test_samples": 1920,
+    "holdout_static_mae": 0.4596,
+    "holdout_static_rmse": 0.8304,
+    "holdout_static_r2": 0.9951
+  },
+  "model_B_candidate_production": {
+    "artifact_path": "/Users/Yurirain/Downloads/Heatwise/experiments/staging/candidate_production_model_10k.joblib",
+    "train_samples": 10000,
+    "fit_mae": 0.1551,
+    "fit_rmse": 0.2802,
+    "fit_r2": 0.9994,
+    "top_features": [
+      [
+        "Rack Power (kW)",
+        65.76
+      ],
+      [
+        "Cooling Capacity (%)",
+        18.03
+      ],
+      [
+        "Recirculation Factor",
+        6.3
+      ],
+      [
+        "Estimated Added Power (W)",
+        3.51
+      ],
+      [
+        "Workload GPU Demand (%)",
+        2.66
+      ]
+    ]
+  }
+}

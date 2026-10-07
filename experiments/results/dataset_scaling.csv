@@ -1,0 +1,4 @@
+experiment,config_id,sample_count,episode_count,train_samples,test_samples,scenario_distribution,data_gen_time_s,train_time_s,static_mae,static_rmse,static_r2,dynamic_mae,dynamic_top1_pct,dynamic_top3_pct,spearman_rho,optimality_gap,materially_worse_rate_pct,unsafe_placements
+Dataset Scaling,A1_3500,3500,15,2800,700,"{'Normal Operation': 720, 'GPU Surge': 720, 'Cooling Degradation': 720, 'Thermal Hotspot': 720, 'High AI Workload': 620}",0.255,0.143,0.442,0.688,0.9966,3.449,40.0,100.0,0.217,3.58,60.0,0
+Dataset Scaling,A2_10000,10000,42,8000,2000,"{'Normal Operation': 2160, 'GPU Surge': 2080, 'Cooling Degradation': 1920, 'Thermal Hotspot': 1920, 'High AI Workload': 1920}",0.674,0.39,0.311,0.563,0.9976,2.624,40.0,100.0,0.457,3.58,60.0,0
+Dataset Scaling,A3_20000,20000,84,16000,4000,"{'Normal Operation': 4080, 'GPU Surge': 4080, 'Cooling Degradation': 4080, 'Thermal Hotspot': 3920, 'High AI Workload': 3840}",1.36,0.755,0.26,0.513,0.9981,2.297,60.0,100.0,0.559,2.0,40.0,0

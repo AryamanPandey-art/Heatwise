@@ -1,0 +1,44 @@
+{
+  "Round Robin": {
+    "peak_temp_mean": 84.1,
+    "peak_temp_std": 0.0,
+    "hotspots_mean": 2.6,
+    "hotspots_std": 0.55,
+    "sla_violations_mean": 4.6,
+    "sla_violations_std": 0.55,
+    "temp_std_mean": 9.76,
+    "temp_std_std": 0.45,
+    "avg_headroom_mean": 11.32,
+    "avg_headroom_std": 0.86,
+    "total_power_kw_mean": 97.89,
+    "total_energy_kwh_mean": 367.08
+  },
+  "Least Loaded": {
+    "peak_temp_mean": 87.26,
+    "peak_temp_std": 4.33,
+    "hotspots_mean": 2.8,
+    "hotspots_std": 0.45,
+    "sla_violations_mean": 5.2,
+    "sla_violations_std": 0.84,
+    "temp_std_mean": 10.84,
+    "temp_std_std": 1.12,
+    "avg_headroom_mean": 11.4,
+    "avg_headroom_std": 0.49,
+    "total_power_kw_mean": 97.89,
+    "total_energy_kwh_mean": 367.08
+  },
+  "HeatWise": {
+    "peak_temp_mean": 84.1,
+    "peak_temp_std": 0.0,
+    "hotspots_mean": 2.0,
+    "hotspots_std": 0.0,
+    "sla_violations_mean": 4.0,
+    "sla_violations_std": 0.0,
+    "temp_std_mean": 8.88,
+    "temp_std_std": 0.5,
+    "avg_headroom_mean": 11.26,
+    "avg_headroom_std": 0.96,
+    "total_power_kw_mean": 97.89,
+    "total_energy_kwh_mean": 367.08
+  }
+}

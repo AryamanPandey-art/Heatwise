@@ -1,0 +1,6 @@
+Category,System,Peak_Temp,Hotspots,SLA_Violations,Failures,Avg_Temp,Temp_Std,Headroom,Power_kW,Energy_kWh
+Canonical Benchmark,Round Robin,84.1,3,5,0,64.8,10.5,11.8,96.97,363.63
+Canonical Benchmark,Least Loaded,84.1,2,4,0,64.8,9.3,11.4,96.97,363.63
+Canonical Benchmark,Old HeatWise (3.5k),84.1,2,4,0,64.6,8.9,11.6,96.97,363.63
+Canonical Benchmark,Candidate Model B (10k),84.1,2,4,0,64.6,8.9,11.6,96.97,363.63
+Canonical Benchmark,Candidate Model A (Grouped 8k),84.1,2,4,0,64.6,8.9,11.6,96.97,363.63

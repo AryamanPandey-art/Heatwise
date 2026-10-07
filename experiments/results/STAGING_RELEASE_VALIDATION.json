@@ -1,0 +1,154 @@
+{
+  "decision": "GO",
+  "criteria": {
+    "A_existing_test_suite": true,
+    "B_application_startup": true,
+    "C_feature_compatibility": true,
+    "D_dynamic_validation": true,
+    "E_canonical_benchmark": true,
+    "F_latency_verification": true
+  },
+  "canonical_benchmark": {
+    "round_robin": {
+      "peak_temp": 84.1,
+      "hotspots": 3,
+      "sla_violations": 5,
+      "total_power_kwh": 0.0,
+      "placement_failures": 0,
+      "temps_history": [],
+      "avg_temp": 64.8,
+      "temp_std": 10.5,
+      "avg_headroom": 11.8,
+      "total_power_kw": 96.97,
+      "total_energy_kwh": 363.63
+    },
+    "least_loaded": {
+      "peak_temp": 84.1,
+      "hotspots": 2,
+      "sla_violations": 4,
+      "total_power_kwh": 0.0,
+      "placement_failures": 0,
+      "temps_history": [],
+      "avg_temp": 64.8,
+      "temp_std": 9.3,
+      "avg_headroom": 11.4,
+      "total_power_kw": 96.97,
+      "total_energy_kwh": 363.63
+    },
+    "old_heatwise": {
+      "peak_temp": 84.1,
+      "hotspots": 2,
+      "sla_violations": 4,
+      "total_power_kwh": 0.0,
+      "placement_failures": 0,
+      "temps_history": [],
+      "avg_temp": 64.6,
+      "temp_std": 8.9,
+      "avg_headroom": 11.6,
+      "total_power_kw": 96.97,
+      "total_energy_kwh": 363.63
+    },
+    "candidate_heatwise_model_B": {
+      "peak_temp": 84.1,
+      "hotspots": 2,
+      "sla_violations": 4,
+      "total_power_kwh": 0.0,
+      "placement_failures": 0,
+      "temps_history": [],
+      "avg_temp": 64.6,
+      "temp_std": 8.9,
+      "avg_headroom": 11.6,
+      "total_power_kw": 96.97,
+      "total_energy_kwh": 363.63
+    },
+    "candidate_heatwise_model_A": {
+      "peak_temp": 84.1,
+      "hotspots": 2,
+      "sla_violations": 4,
+      "total_power_kwh": 0.0,
+      "placement_failures": 0,
+      "temps_history": [],
+      "avg_temp": 64.6,
+      "temp_std": 8.9,
+      "avg_headroom": 11.6,
+      "total_power_kw": 96.97,
+      "total_energy_kwh": 363.63
+    },
+    "allocation_match_old_vs_candidate_B_pct": 93.3
+  },
+  "dynamic_validation_seed_101": {
+    "dynamic_mae": 1.867,
+    "top1_agreement_pct": 79.6,
+    "top3_overlap_pct": 100.0,
+    "spearman_rho": 0.58,
+    "ml_mean_actual_temp": 59.86,
+    "oracle_mean_actual_temp": 59.38,
+    "optimality_gap": 0.473,
+    "materially_worse_rate_pct": 9.2,
+    "unsafe_placements_count": 0,
+    "hw_infeasible_count": 0,
+    "total_decisions": 250,
+    "threshold_edge_decisions": 233,
+    "rejected_by_conservative_bound": 0,
+    "scenario_worse_breakdown": {
+      "Normal Operation": 6,
+      "GPU Surge": 5,
+      "Cooling Degradation": 1,
+      "Thermal Hotspot": 1,
+      "High AI Workload": 10
+    }
+  },
+  "dynamic_reference_model_A_5seeds": {
+    "dynamic_mae_mean": 1.931,
+    "top1_agreement_mean": 81.2,
+    "optimality_gap_mean": 0.368
+  },
+  "latency_profile": {
+    "batch_12_predict_serial_ms": {
+      "mean_ms": 2.666,
+      "median_ms": 2.647,
+      "p95_ms": 2.815,
+      "p99_ms": 2.839
+    },
+    "batch_12_predict_parallel_ms": {
+      "mean_ms": 13.903,
+      "median_ms": 12.667,
+      "p95_ms": 16.122,
+      "p99_ms": 16.154
+    },
+    "feature_construction_12_racks_ms": {
+      "mean_ms": 2.233,
+      "median_ms": 2.207,
+      "p95_ms": 2.391,
+      "p99_ms": 2.706
+    },
+    "candidate_scoring_12_racks_ms": {
+      "mean_ms": 0.066,
+      "median_ms": 0.066,
+      "p95_ms": 0.072,
+      "p99_ms": 0.077
+    },
+    "full_e2e_placement_serial_jobs_1_ms": {
+      "mean_ms": 34.537,
+      "median_ms": 34.602,
+      "p95_ms": 35.525,
+      "p99_ms": 36.028
+    },
+    "full_e2e_placement_parallel_jobs_neg1_ms": {
+      "mean_ms": 177.803,
+      "median_ms": 178.167,
+      "p95_ms": 189.068,
+      "p99_ms": 194.269
+    }
+  },
+  "regression_tests": {
+    "tests_run": 15,
+    "passed": true,
+    "failures": 0,
+    "errors": 0
+  },
+  "application_validation": {
+    "passed": true,
+    "errors": []
+  }
+}

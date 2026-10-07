@@ -1,0 +1,11 @@
+{
+  "rf_predict_parallel_jobs_neg1_ms": 12.847,
+  "rf_predict_serial_jobs_1_ms": 1.965,
+  "tree_variance_sequential_ms": 2.276,
+  "feature_construction_12_racks_ms": 2.207,
+  "candidate_scoring_12_racks_ms": 0.067,
+  "e2e_placement_loop_mean_ms": 26.172,
+  "e2e_placement_loop_median_ms": 25.937,
+  "e2e_placement_loop_p95_ms": 27.646,
+  "e2e_placement_loop_p99_ms": 28.062
+}

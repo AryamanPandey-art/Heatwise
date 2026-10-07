@@ -1,0 +1,83 @@
+[
+  {
+    "experiment": "Dataset Scaling",
+    "config_id": "A1_3500",
+    "sample_count": 3500,
+    "episode_count": 15,
+    "train_samples": 2800,
+    "test_samples": 700,
+    "scenario_distribution": {
+      "Normal Operation": 720,
+      "GPU Surge": 720,
+      "Cooling Degradation": 720,
+      "Thermal Hotspot": 720,
+      "High AI Workload": 620
+    },
+    "data_gen_time_s": 0.255,
+    "train_time_s": 0.143,
+    "static_mae": 0.442,
+    "static_rmse": 0.688,
+    "static_r2": 0.9966,
+    "dynamic_mae": 3.449,
+    "dynamic_top1_pct": 40.0,
+    "dynamic_top3_pct": 100.0,
+    "spearman_rho": 0.217,
+    "optimality_gap": 3.58,
+    "materially_worse_rate_pct": 60.0,
+    "unsafe_placements": 0
+  },
+  {
+    "experiment": "Dataset Scaling",
+    "config_id": "A2_10000",
+    "sample_count": 10000,
+    "episode_count": 42,
+    "train_samples": 8000,
+    "test_samples": 2000,
+    "scenario_distribution": {
+      "Normal Operation": 2160,
+      "GPU Surge": 2080,
+      "Cooling Degradation": 1920,
+      "Thermal Hotspot": 1920,
+      "High AI Workload": 1920
+    },
+    "data_gen_time_s": 0.674,
+    "train_time_s": 0.39,
+    "static_mae": 0.311,
+    "static_rmse": 0.563,
+    "static_r2": 0.9976,
+    "dynamic_mae": 2.624,
+    "dynamic_top1_pct": 40.0,
+    "dynamic_top3_pct": 100.0,
+    "spearman_rho": 0.457,
+    "optimality_gap": 3.58,
+    "materially_worse_rate_pct": 60.0,
+    "unsafe_placements": 0
+  },
+  {
+    "experiment": "Dataset Scaling",
+    "config_id": "A3_20000",
+    "sample_count": 20000,
+    "episode_count": 84,
+    "train_samples": 16000,
+    "test_samples": 4000,
+    "scenario_distribution": {
+      "Normal Operation": 4080,
+      "GPU Surge": 4080,
+      "Cooling Degradation": 4080,
+      "Thermal Hotspot": 3920,
+      "High AI Workload": 3840
+    },
+    "data_gen_time_s": 1.36,
+    "train_time_s": 0.755,
+    "static_mae": 0.26,
+    "static_rmse": 0.513,
+    "static_r2": 0.9981,
+    "dynamic_mae": 2.297,
+    "dynamic_top1_pct": 60.0,
+    "dynamic_top3_pct": 100.0,
+    "spearman_rho": 0.559,
+    "optimality_gap": 2.0,
+    "materially_worse_rate_pct": 40.0,
+    "unsafe_placements": 0
+  }
+]

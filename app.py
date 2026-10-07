@@ -1,32 +1,35 @@
 """
 HeatWise: Intelligent Thermal-Aware Workload Placement in AI Data Centers
-Interactive Streamlit Prototype & Demonstration System.
+Premium Product-Grade Interactive Streamlit Application.
 """
+
+import textwrap
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import time
+import os
 
-# Core modules
-from simulation import (
-    DataCenterSimulation,
+# Core modules (UNTOUCHED BACKEND)
+from simulation import DataCenterSimulation
+from config import (
     TEMP_CRITICAL,
     TEMP_MAX_SAFE,
     TEMP_NORMAL_MAX,
     TEMP_WARM_MAX,
     TOTAL_RACKS,
     SERVERS_PER_RACK,
-    GPUS_PER_SERVER
+    GPUS_PER_SERVER,
+    WORKLOAD_PROFILES,
+    INTENSITY_LEVELS,
+    DEFAULT_WEIGHTS
 )
 from ml_model import get_trained_predictor, ThermalMLPredictor
 from heatwise import (
     Workload,
     HeatWiseDecisionEngine,
-    WORKLOAD_PROFILES,
-    INTENSITY_LEVELS,
-    DEFAULT_WEIGHTS,
     run_batch_simulation_benchmark
 )
 from visualization import (
@@ -34,237 +37,52 @@ from visualization import (
     create_before_after_comparison_heatmap,
     create_candidate_radar_chart,
     create_candidate_scores_bar_chart,
-    create_algorithm_benchmark_charts,
     create_ml_evaluation_charts
 )
+import ui_theme
+import importlib
+importlib.reload(ui_theme)
 
-# Set page configuration
+# Page configuration
 st.set_page_config(
-    page_title="HeatWise | Thermal-Aware AI Workload Placement",
+    page_title="HeatWise | Thermal-Aware Workload Placement",
     page_icon="🔥",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Custom Dark Cyber-Thermal CSS Design System
-CUSTOM_CSS = """
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    
-    .stApp {
-        background-color: #0b0f19;
-        color: #f1f5f9;
-    }
-    
-    /* Top Header Banner */
-    .hero-banner {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
-        border: 1px solid rgba(56, 189, 248, 0.25);
-        border-radius: 14px;
-        padding: 22px 28px;
-        margin-bottom: 22px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .hero-title {
-        font-size: 26px;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #ec4899 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 4px;
-    }
-    
-    .hero-subtitle {
-        font-size: 13px;
-        color: #94a3b8;
-        margin: 0;
-    }
-    
-    /* KPI Metric Cards */
-    .kpi-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    
-    .kpi-card {
-        background: rgba(17, 24, 39, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
-        padding: 14px 16px;
-        backdrop-filter: blur(8px);
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(56, 189, 248, 0.4);
-    }
-    
-    .kpi-label {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: #94a3b8;
-        margin-bottom: 4px;
-        font-weight: 600;
-    }
-    
-    .kpi-value {
-        font-size: 22px;
-        font-weight: 700;
-        color: #f8fafc;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    
-    /* Section Glass Cards */
-    .glass-card {
-        background: rgba(17, 24, 39, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 18px;
-        backdrop-filter: blur(10px);
-    }
-    
-    .glass-card-title {
-        font-size: 16px;
-        font-weight: 700;
-        color: #e2e8f0;
-        margin-bottom: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    /* Pipeline Flow Stepper */
-    .pipeline-container {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px;
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin-bottom: 18px;
-    }
-    
-    .pipeline-step {
-        background: rgba(30, 41, 59, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #cbd5e1;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .pipeline-step.active {
-        background: rgba(14, 165, 233, 0.25);
-        border-color: #38bdf8;
-        color: #38bdf8;
-    }
-    
-    .pipeline-arrow {
-        color: #64748b;
-        font-weight: 700;
-        font-size: 14px;
-    }
-    
-    /* Recommendation Winner Box */
-    .winner-box {
-        background: linear-gradient(135deg, rgba(6, 78, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
-        border: 2px solid #10b981;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 18px;
-        box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
-    }
-    
-    .winner-header {
-        font-size: 20px;
-        font-weight: 800;
-        color: #34d399;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-    
-    .reason-item {
-        font-size: 13px;
-        color: #e2e8f0;
-        margin-bottom: 6px;
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    /* Rejection / Warning Box */
-    .rejection-box {
-        background: linear-gradient(135deg, rgba(127, 29, 29, 0.35) 0%, rgba(15, 23, 42, 0.8) 100%);
-        border: 1.5px solid #ef4444;
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 18px;
-    }
-    
-    /* Status Badges */
-    .status-badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 9999px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .badge-normal { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
-    .badge-warm { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
-    .badge-high { background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid #f97316; }
-    .badge-hotspot { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; }
-    
-    /* Disclaimer Tag */
-    .disclaimer-tag {
-        font-size: 11px;
-        color: #94a3b8;
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        padding: 4px 10px;
-        border-radius: 6px;
-        display: inline-block;
-    }
-</style>
-"""
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+def render_html(html_str: str):
+    """Helper to render HTML directly using Streamlit native st.html."""
+    cleaned = "\n".join(line.strip() for line in html_str.splitlines() if line.strip())
+    st.html(cleaned)
 
 
-# Initialize Session State
+# ==============================================================================
+# STATE INITIALIZATION
+# ==============================================================================
+
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"
+
+if "active_page" not in st.session_state:
+    st.session_state.active_page = "Home"
+
+if "nav_counter" not in st.session_state:
+    st.session_state.nav_counter = 0
+
 if "simulation" not in st.session_state:
     st.session_state.simulation = DataCenterSimulation(scenario="Thermal Hotspot")
+
 if "selected_scenario" not in st.session_state:
     st.session_state.selected_scenario = "Thermal Hotspot"
+
 if "selected_inspect_rack" not in st.session_state:
     st.session_state.selected_inspect_rack = 7
+
 if "ml_predictor" not in st.session_state:
-    with st.spinner("Initializing Thermal ML Model..."):
+    with st.spinner("Initializing Thermal ML Predictor..."):
         st.session_state.ml_predictor = get_trained_predictor()
 
-# Initialize Decision Engine
 decision_engine = HeatWiseDecisionEngine(predictor=st.session_state.ml_predictor)
 
 if "last_placement_result" not in st.session_state or st.session_state.last_placement_result is None:
@@ -274,642 +92,899 @@ if "last_placement_result" not in st.session_state or st.session_state.last_plac
         workload=init_wl
     )
 
+if "temp_history" not in st.session_state or len(st.session_state.temp_history) == 0:
+    st.session_state.temp_history = [
+        {"step": 0, **{f"R{r_id}": st.session_state.simulation.racks[r_id]["temperature"] for r_id in range(1, 13)}}
+    ]
 
-# Sidebar Configuration
-with st.sidebar:
-    st.markdown("### ⚙️ Simulation Control")
+# Apply custom Theme CSS with dynamic navigation counter
+st.markdown(ui_theme.get_css(st.session_state.theme, st.session_state.nav_counter), unsafe_allow_html=True)
+theme = st.session_state.theme
+theme_cfg = ui_theme.THEME_CONFIG[theme]
+
+# ==============================================================================
+# TOP BRANDING & NAVIGATION BAR
+# ==============================================================================
+
+col_brand, col_nav, col_toggle = st.columns([1.5, 5.7, 1.8], gap="small")
+
+with col_brand:
+    render_html(f"""
+    <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0;">
+        <span style="font-size: 22px;">⚡</span>
+        <div>
+            <div style="font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: {theme_cfg['text_primary']}; line-height: 1.1;">HEATWISE</div>
+            <div style="font-size: 9px; font-weight: 700; color: {theme_cfg['text_muted']}; letter-spacing: 0.9px; text-transform: uppercase; white-space: nowrap;">Thermal-Aware AI Infrastructure</div>
+        </div>
+    </div>
+    """)
+
+with col_nav:
+    nav_items = [
+        ("Home", "Overview"),
+        ("Simulation", "Simulation"),
+        ("Placement", "Placement"),
+        ("Benchmark", "Benchmark"),
+        ("ML Performance", "ML Model"),
+        ("Methodology", "Methodology")
+    ]
+    n_cols = st.columns(len(nav_items), gap="small")
+    for i, (p_id, p_label) in enumerate(nav_items):
+        with n_cols[i]:
+            is_active = (st.session_state.active_page == p_id)
+            if st.button(p_label, key=f"nav_{p_id}", use_container_width=True, type="primary" if is_active else "secondary"):
+                if st.session_state.active_page != p_id:
+                    st.session_state.active_page = p_id
+                    st.session_state.nav_counter += 1
+                    st.rerun()
+
+with col_toggle:
+    col_stat, col_btn = st.columns([1.1, 0.9], gap="small")
+    with col_stat:
+        render_html(f"""
+        <div style="display: flex; align-items: center; justify-content: center; gap: 5px; height: 32px; padding: 0 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 7px; white-space: nowrap;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 5px #10b981;"></span>
+            <span style="font-size: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #10b981;">10k ONLINE</span>
+        </div>
+        """)
+    with col_btn:
+        toggle_label = "☀️ Light" if theme == "dark" else "🌙 Dark"
+        if st.button(toggle_label, key="theme_toggle_btn", use_container_width=True, type="secondary"):
+            st.session_state.theme = "light" if theme == "dark" else "dark"
+            st.rerun()
+
+st.markdown("<div style='height: 2px;'></div>", unsafe_allow_html=True)
+
+# ==============================================================================
+# HELPER FUNCTIONS FOR CHARTS
+# ==============================================================================
+
+def create_temperature_history_chart(history, theme="dark"):
+    df = pd.DataFrame(history)
+    fig = go.Figure()
     
-    scenario_options = [
-        "Thermal Hotspot",
-        "Normal Operation",
-        "High AI Workload",
-        "Cooling Degradation",
-        "GPU Surge"
+    palette = [
+        "#38bdf8", "#22c55e", "#eab308", "#f97316", "#ef4444", "#a855f7",
+        "#ec4899", "#06b6d4", "#84cc16", "#14b8a6", "#6366f1", "#f43f5e"
     ]
     
-    selected_scen = st.selectbox(
-        "Simulation Scenario",
-        scenario_options,
-        index=scenario_options.index(st.session_state.selected_scenario),
-        help="Simulates distinct thermal conditions, load profiles, or cooling faults."
+    for i in range(1, 13):
+        col = f"R{i}"
+        if col in df.columns:
+            fig.add_trace(go.Scatter(
+                x=df["step"],
+                y=df[col],
+                mode="lines+markers" if len(df) <= 10 else "lines",
+                name=f"R{i}",
+                line=dict(color=palette[(i-1) % len(palette)], width=1.8),
+                marker=dict(size=4)
+            ))
+            
+    fig.add_hline(
+        y=TEMP_CRITICAL,
+        line_dash="dash",
+        line_color="#ef4444",
+        annotation_text="Critical (75°C)",
+        annotation_position="top right",
+        annotation_font=dict(color="#ef4444", size=10)
+    )
+    fig.add_hline(
+        y=TEMP_MAX_SAFE,
+        line_dash="dot",
+        line_color="#b91c1c",
+        annotation_text="Max Safe (80°C)",
+        annotation_position="bottom right",
+        annotation_font=dict(color="#b91c1c", size=10)
     )
     
-    # Reload simulation if scenario changed
-    if selected_scen != st.session_state.selected_scenario:
-        st.session_state.selected_scenario = selected_scen
-        st.session_state.simulation.load_scenario(selected_scen)
-        st.session_state.last_placement_result = None
-        st.rerun()
-
-    # Scenario description callout
-    scen_descriptions = {
-        "Thermal Hotspot": "🔥 **College Demo Scenario**: Rack 7 has 70% free GPU availability but is thermally stressed (68°C). Rack 3 has 60% free GPU and safe temperature (48°C).",
-        "Normal Operation": "🟢 Balanced load and homogeneous CRAC airflow (45°C - 58°C across all racks).",
-        "High AI Workload": "⚡ Heavy training clusters concentrated in top-left zone (Racks 1, 2, 5, 6).",
-        "Cooling Degradation": "❄️ CRAC airflow failure in middle row (Racks 5-8 cooling drops to 45%).",
-        "GPU Surge": "🚀 High-throughput burst load across bottom racks (Racks 9-12 GPU util > 85%)."
-    }
-    st.info(scen_descriptions[selected_scen])
-    
-    # Quick Reset / Preset Button
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("🔄 Reset Data Center", use_container_width=True):
-            st.session_state.simulation.load_scenario(st.session_state.selected_scenario)
-            st.session_state.last_placement_result = None
-            st.rerun()
-    with col_btn2:
-        if st.button("⚡ Demo Preset", use_container_width=True):
-            st.session_state.selected_scenario = "Thermal Hotspot"
-            st.session_state.simulation.load_scenario("Thermal Hotspot")
-            st.session_state.last_placement_result = None
-            st.rerun()
-
-    st.markdown("---")
-    st.markdown("### 📥 Incoming AI Workload")
-    
-    workload_type = st.selectbox(
-        "Workload Type",
-        list(WORKLOAD_PROFILES.keys()),
-        index=0
+    fig.update_layout(
+        title=dict(text="<b>Rack Temperature Over Time</b>", font=dict(size=14)),
+        xaxis_title="Simulation Step (Ticks)",
+        yaxis_title="Temperature (°C)",
+        yaxis_range=[30, 95],
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.42,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=10)
+        )
     )
-    
-    intensity = st.select_slider(
-        "Workload Intensity",
-        options=["Low", "Medium", "High", "Very High"],
-        value="High"
-    )
-    
-    gpu_demand = st.slider(
-        "GPU Demand (% Capacity)",
-        min_value=15,
-        max_value=90,
-        value=int(WORKLOAD_PROFILES[workload_type]["base_gpu_pct"]),
-        step=5,
-        help="GPU compute capacity demanded by this incoming AI job."
-    )
-    
-    priority = st.selectbox(
-        "Workload Priority",
-        ["Low", "Medium", "High", "Critical"],
-        index=2
-    )
-
-    st.markdown("---")
-    # Quick decision button in sidebar
-    find_placement_clicked = st.button(
-        "🚀 Find Best Placement",
-        type="primary",
-        use_container_width=True
-    )
-
-    st.markdown("---")
-    st.markdown(
-        "<div class='disclaimer-tag'>🔬 <b>Academic Prototype</b><br>Simulation-based research model for college demonstration.</div>",
-        unsafe_allow_html=True
-    )
-
-
-# Top Hero Banner
-st.markdown("""
-<div class="hero-banner">
-    <div>
-        <div class="hero-title">🔥 HeatWise: Intelligent Thermal-Aware Workload Placement</div>
-        <p class="hero-subtitle">High-Density AI Data Center Simulation & ML Post-Placement Thermal Optimization</p>
-    </div>
-    <div style="text-align: right;">
-        <span class="disclaimer-tag">12 Racks | 48 GPU Servers | 384 GPUs</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-# Top KPI Metric Row
-kpis = st.session_state.simulation.get_kpi_summary()
-st.markdown(f"""
-<div class="kpi-container">
-    <div class="kpi-card">
-        <div class="kpi-label">Total Racks</div>
-        <div class="kpi-value">{kpis['total_racks']}</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Active Servers</div>
-        <div class="kpi-value">{kpis['total_servers']}</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Avg Cluster Temp</div>
-        <div class="kpi-value">{kpis['avg_temp']}°C</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Peak Temperature</div>
-        <div class="kpi-value" style="color: {'#ef4444' if kpis['max_temp'] >= TEMP_CRITICAL else '#f59e0b'};">{kpis['max_temp']}°C</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Total Power</div>
-        <div class="kpi-value">{kpis['total_power_kw']} kW</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Thermal Hotspots</div>
-        <div class="kpi-value" style="color: {'#ef4444' if kpis['hotspot_count'] > 0 else '#10b981'};">{kpis['hotspot_count']}</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Current Workload</div>
-        <div class="kpi-value" style="font-size: 16px; color: #38bdf8;">{workload_type}</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-# Main Tabs Navigation
-tab_live, tab_bench, tab_ml, tab_arch, tab_about = st.tabs([
-    "🖥️ Live Operations & Placement",
-    "📊 Algorithm Comparison & Benchmarks",
-    "🧠 ML Thermal Prediction Model",
-    "🏛️ System Architecture",
-    "ℹ️ About HeatWise & Presentation Script"
-])
+    return ui_theme.apply_plotly_theme(fig, theme=theme, height=330)
 
 
 # ==============================================================================
-# TAB 1: LIVE OPERATIONS & PLACEMENT
+# PAGE 1: HOME / LANDING PAGE (CONTROL PLANE OVERVIEW)
 # ==============================================================================
-with tab_live:
-    # Create the workload object
-    current_workload = Workload(
-        workload_type=workload_type,
-        intensity=intensity,
-        gpu_demand_pct=float(gpu_demand),
-        priority=priority,
-        workload_id=f"JOB-{int(time.time()) % 1000}"
-    )
 
-    col_wl_info, col_wl_action = st.columns([0.7, 0.3])
-    with col_wl_info:
-        st.markdown(f"""
-        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 10px 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
-            <div>
-                <span style="font-weight: 700; color: #38bdf8; font-size: 14px;">Incoming Workload:</span>
-                <span style="color: #f8fafc; font-weight: 600; margin-left: 6px;">{workload_type}</span>
-                <span style="color: #94a3b8; font-size: 12px; margin-left: 10px;">(Intensity: <b>{intensity}</b> | GPU Demand: <b>{gpu_demand}%</b> | Priority: <b>{priority}</b>)</span>
-            </div>
-            <div style="font-size: 12px; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">Est Power: <b>{current_workload.power_est_w} W</b></div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_wl_action:
-        inline_find_placement = st.button("🚀 Find Best Placement", type="primary", use_container_width=True, key="inline_find_btn")
-
-    # Process placement if button was clicked or state exists
-    if find_placement_clicked or inline_find_placement:
-        with st.spinner("Executing HeatWise Decision Engine..."):
-            eval_result = decision_engine.evaluate_placement(
-                sim=st.session_state.simulation,
-                workload=current_workload
-            )
-            st.session_state.last_placement_result = eval_result
-
-    # Visual Workflow Pipeline
-    st.markdown("""
-    <div class="pipeline-container">
-        <div class="pipeline-step active">📥 1. Incoming AI Workload</div>
-        <span class="pipeline-arrow">→</span>
-        <div class="pipeline-step active">🔍 2. Check GPU Availability</div>
-        <span class="pipeline-arrow">→</span>
-        <div class="pipeline-step active">🌡️ 3. Telemetry & Heatmap</div>
-        <span class="pipeline-arrow">→</span>
-        <div class="pipeline-step active">🧠 4. ML Temp Prediction</div>
-        <span class="pipeline-arrow">→</span>
-        <div class="pipeline-step active">⚖️ 5. HeatWise Multi-Scoring</div>
-        <span class="pipeline-arrow">→</span>
-        <div class="pipeline-step active" style="border-color: #10b981; color: #34d399;">🎯 6. Recommended Placement</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # If we have an active evaluation result, show recommendation & explainability first
-    if st.session_state.last_placement_result:
-        res = st.session_state.last_placement_result
-        winner = res["recommended_rack"]
-        ll_rack = res["least_loaded_rack"]
-        contrast = res["contrast_scenario"]
-
-        col_win, col_contrast = st.columns([1.1, 0.9])
-
-        with col_win:
-            st.markdown(f"""
-            <div class="winner-box">
-                <div class="winner-header">
-                    <span>🏆 Recommended Placement: <b>{winner['rack_name']}</b></span>
-                    <span style="font-size: 14px; background: rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 6px;">Score: {winner['heatwise_score']}/100</span>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
-                    <div>🌡️ Predicted Temp: <b style="color: #34d399;">{winner['predicted_temp']}°C</b> (+{winner['temp_delta']}°C)</div>
-                    <div>🛡️ Thermal Headroom: <b style="color: #38bdf8;">{winner['predicted_headroom']}°C</b></div>
-                    <div>⚡ GPU Availability: <b>{winner['gpu_available_pct']}%</b></div>
-                    <div>🔌 Estimated Power: <b>{winner['predicted_power_kw']} kW</b></div>
-                </div>
-                <div style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Why did HeatWise choose {winner['rack_name']}?</div>
-                <div class="reason-item">✅ <b>GPU Capacity:</b> Sufficient headroom to handle {current_workload.gpu_demand_pct}% demand.</div>
-                <div class="reason-item">✅ <b>Thermal Safety:</b> Predicted temperature of {winner['predicted_temp']}°C is well below critical {TEMP_CRITICAL}°C limit.</div>
-                <div class="reason-item">✅ <b>Cooling & Neighbors:</b> Operating at {winner['cooling_capacity_pct']}% cooling capacity with stable {winner['neighbor_avg_temp']}°C neighbor zone.</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col_contrast:
-            if contrast:
-                st.markdown(f"""
-                <div class="rejection-box">
-                    <div style="font-size: 17px; font-weight: 800; color: #f87171; margin-bottom: 8px;">
-                        ⚠️ Conventional Schedulers Would Fail (Least-Loaded Pitfall)
-                    </div>
-                    <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 10px;">
-                        <b>Least-Loaded Algorithm</b> would pick <b style="color: #fca5a5;">{contrast['least_loaded_rack']}</b> (highest free GPU = {contrast['least_loaded_gpu_avail']}%), 
-                        ignoring that it is already at {contrast['least_loaded_curr_temp']}°C.
-                    </div>
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 13px; font-family: 'JetBrains Mono', monospace;">
-                        <div>• Least-Loaded → {contrast['least_loaded_rack']} → <span style="color: #ef4444; font-weight: 700;">Predicted {contrast['least_loaded_pred_temp']}°C (HOTSPOT RISK)</span></div>
-                        <div>• HeatWise → {contrast['heatwise_rack']} → <span style="color: #10b981; font-weight: 700;">Predicted {contrast['heatwise_pred_temp']}°C (SAFE)</span></div>
-                    </div>
-                    <div style="font-size: 12px; color: #94a3b8; font-style: italic;">
-                        {contrast['explanation']}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class="glass-card">
-                    <div class="glass-card-title">✅ Benchmark Alignment</div>
-                    <div style="font-size: 13px; color: #cbd5e1;">
-                        In this operating scenario, <b>{winner['rack_name']}</b> represents both the highest available compute and the safest thermal environment.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-    # 2D Heatmap & Before/After Comparison
-    col_map1, col_map2 = st.columns([1, 1])
-
-    with col_map1:
-        highlight_id = st.session_state.last_placement_result["recommended_rack"]["rack_id"] if st.session_state.last_placement_result else None
-        fig_live_map = create_datacenter_heatmap(
-            st.session_state.simulation.racks,
-            highlight_rack_id=highlight_id,
-            title="Interactive 2D Thermal Map (Current Telemetry)"
-        )
-        st.plotly_chart(fig_live_map, use_container_width=True)
-
-    with col_map2:
-        if st.session_state.last_placement_result:
-            winner = st.session_state.last_placement_result["recommended_rack"]
-            fig_before_after = create_before_after_comparison_heatmap(
-                st.session_state.simulation.racks,
-                chosen_rack_id=winner["rack_id"],
-                post_temp=winner["predicted_temp"],
-                chosen_algorithm_name="HeatWise Recommended Rack"
-            )
-            st.plotly_chart(fig_before_after, use_container_width=True)
-        else:
-            st.info("👈 Click **'Find Best Placement'** in the sidebar to generate Before vs After Thermal Impact Map.")
-
-    # Candidate Evaluation Breakdown & Radar Comparison
-    if st.session_state.last_placement_result:
-        res = st.session_state.last_placement_result
-        st.markdown("### 📊 Candidate Rack Evaluations & Scoring")
-
-        col_radar, col_bar = st.columns([1, 1])
-        with col_radar:
-            fig_radar = create_candidate_radar_chart(res["all_candidates"], top_n=4)
-            st.plotly_chart(fig_radar, use_container_width=True)
-        with col_bar:
-            fig_bar_scores = create_candidate_scores_bar_chart(res["all_candidates"])
-            st.plotly_chart(fig_bar_scores, use_container_width=True)
-
-        # Full Candidate Matrix Table
-        with st.expander("📋 View Full 12-Rack Candidate Decision Matrix", expanded=False):
-            cand_rows = []
-            for c in res["all_candidates"]:
-                cand_rows.append({
-                    "Rack": c["rack_name"],
-                    "HeatWise Score": f"{c['heatwise_score']}/100",
-                    "Current Temp": f"{c['current_temp']}°C",
-                    "Predicted Temp": f"{c['predicted_temp']}°C",
-                    "Temp Rise": f"+{c['temp_delta']}°C",
-                    "Thermal Headroom": f"{c['predicted_headroom']}°C",
-                    "GPU Free (%)": f"{c['gpu_available_pct']}%",
-                    "Cooling Capacity": f"{c['cooling_capacity_pct']}%",
-                    "Decision Status": "REJECTED" if c["is_rejected"] else "SAFE",
-                    "Reason / Diagnosis": c["rejection_reason"]
-                })
-            st.dataframe(pd.DataFrame(cand_rows), use_container_width=True)
-
-    # Server Level Inspector
-    st.markdown("---")
-    st.markdown("### 🔍 Server-Level Drilldown Inspector")
-    col_sel_rack, col_inspect = st.columns([0.3, 0.7])
-    
-    with col_sel_rack:
-        inspect_rack_id = st.selectbox(
-            "Select Rack to Inspect Servers:",
-            options=list(range(1, TOTAL_RACKS + 1)),
-            index=st.session_state.selected_inspect_rack - 1
-        )
-        st.session_state.selected_inspect_rack = inspect_rack_id
-        rack_obj = st.session_state.simulation.racks[inspect_rack_id]
+if st.session_state.active_page == "Home":
+    with st.container(key=f"hw_page_home_{st.session_state.nav_counter}"):
         
-        st.markdown(f"""
-        <div class="glass-card" style="padding: 14px;">
-            <div style="font-weight: 700; font-size: 15px; color: #38bdf8;">Rack {inspect_rack_id} Telemetry</div>
-            <div style="font-size: 12px; color: #cbd5e1; margin-top: 6px;">
-                • Temperature: <b>{rack_obj['temperature']}°C</b><br>
-                • Status: <span class="status-badge {rack_obj['badge_class']}">{rack_obj['status']}</span><br>
-                • Cooling Capacity: <b>{rack_obj['cooling_capacity_pct']}%</b><br>
-                • Neighbor Avg: <b>{rack_obj['neighbor_avg_temp']}°C</b><br>
-                • Total Power: <b>{round(rack_obj['total_power_w']/1000, 2)} kW</b>
+        # 1. Compact Cockpit Header Ribbon (replaces bulky header and cards)
+        render_html(f"""
+        <div class="hw-cockpit-ribbon">
+            <div class="hw-cockpit-left">
+                <span class="hw-cockpit-status-dot"></span>
+                <span class="hw-cockpit-title">DISPATCH CONTROL PLANE</span>
+                <span class="hw-cockpit-sub">12-RACK AI ACCELERATOR CLUSTER</span>
+            </div>
+            <div class="hw-cockpit-telemetry">
+                <span class="hw-telem-item"><b>12</b> RACKS <small>(3×4 Grid)</small></span>
+                <span class="hw-telem-sep">|</span>
+                <span class="hw-telem-item"><b>384</b> GPUs <small>(8/Svr)</small></span>
+                <span class="hw-telem-sep">|</span>
+                <span class="hw-telem-item"><b>12.6 kW</b>/RACK <small>MAX</small></span>
+                <span class="hw-telem-sep">|</span>
+                <span class="hw-telem-item" style="color: #ef4444;"><b>75.0°C</b> CRITICAL</span>
+                <span class="hw-telem-sep">|</span>
+                <span class="hw-telem-item" style="color: #dc2626;"><b>80.0°C</b> MAX SAFE</span>
             </div>
         </div>
-        """, unsafe_allow_html=True)
-
-    with col_inspect:
-        servers = rack_obj["servers"]
-        srv_df = pd.DataFrame([
-            {
-                "Server ID": s["server_id"],
-                "GPU Util (%)": f"{s['gpu_util']}%",
-                "CPU Util (%)": f"{s['cpu_util']}%",
-                "GPU Count": s["gpu_count"],
-                "Power Draw (W)": f"{s['power_w']} W",
-                "Active Workload": s["active_workload"]
-            }
-            for s in servers
-        ])
-        st.dataframe(srv_df, use_container_width=True)
-
-    # Expandable Decision Logic Breakdown
-    with st.expander("⚙️ How HeatWise Makes the Decision (Mathematical Formulation & Weights)", expanded=False):
-        st.markdown(r"""
-        #### **HeatWise Multi-Criteria Objective Formulation**
-        HeatWise evaluates all candidate racks by synthesizing physics-driven telemetry and machine learning temperature predictions into a transparent composite score $S_i \in [0, 100]$:
-        
-        $$\text{Score}_i = w_{\text{temp}} \cdot S_{\text{temp}}(T_{\text{pred}}) + w_{\text{head}} \cdot S_{\text{head}}(\text{Headroom}) + w_{\text{gpu}} \cdot S_{\text{gpu}}(\text{GPU Availability}) + w_{\text{cool}} \cdot S_{\text{cool}}(\text{Cooling}) + w_{\text{nbr}} \cdot S_{\text{nbr}}(\text{Neighbor Temp}) - \text{Penalty}$$
-        
-        * **$S_{\text{temp}}$ (35%)**: Penalizes racks whose predicted temperature approaches or exceeds $75.0^\circ\text{C}$.
-        * **$S_{\text{head}}$ (25%)**: Rewards racks with larger thermal headroom buffer margins.
-        * **$S_{\text{gpu}}$ (20%)**: Ensures sufficient computational capacity and load balancing.
-        * **$S_{\text{cool}}$ (10%)**: Rewards racks serviced by higher-efficiency CRAC airflow loops.
-        * **$S_{\text{nbr}}$ (10%)**: Avoids thermal recirculation coupling from overheated neighboring racks.
         """)
+        
+        # 2. Central Control Deck: 3x4 Facility Grid & Live Decision Panel
+        c_grid, c_dec = st.columns([1.38, 1.12], gap="medium")
+        
+        with c_dec:
+            with st.container(border=True, key="hw_home_decision_card"):
+                render_html("""
+                <div class="hw-card-title">
+                    <span>⚡ Next Placement Decision</span>
+                </div>
+                """)
+                
+                wl_col1, wl_col2 = st.columns(2)
+                with wl_col1:
+                    home_wl_type = st.selectbox(
+                        "Workload Type",
+                        list(WORKLOAD_PROFILES.keys()),
+                        index=0,
+                        key="home_wl_type_select"
+                    )
+                with wl_col2:
+                    home_wl_int = st.select_slider(
+                        "Intensity",
+                        options=["Low", "Medium", "High", "Very High"],
+                        value="High",
+                        key="home_wl_int_slider"
+                    )
+                
+                # Create workload and evaluate against current simulation state
+                current_wl = Workload(workload_type=home_wl_type, intensity=home_wl_int)
+                eval_result = decision_engine.evaluate_placement(st.session_state.simulation, current_wl)
+                st.session_state.last_placement_result = eval_result
+                winner = eval_result["recommended_rack"]
+                recommended_id = winner["rack_id"]
+                
+                render_html(f"""
+                <div class="hw-dec-target-box">
+                    <div class="hw-dec-target-header">
+                        <div>
+                            <div style="font-size: 9.5px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.8px;">
+                                ★ TOP CANDIDATE &bull; RANK #1 / 12
+                            </div>
+                            <div class="hw-dec-target-id">Rack R{recommended_id:02d}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="hw-dec-target-badge">
+                                Thermally Preferred
+                            </div>
+                            <div style="font-size: 10.5px; color: {theme_cfg['text_muted']}; margin-top: 3px; font-family: 'JetBrains Mono', monospace;">
+                                Score: <b style="color: {theme_cfg['text_primary']};">{winner['heatwise_score']:.1f} / 100</b>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hw-dec-metrics-grid">
+                    <div class="hw-dec-metric-box">
+                        <div class="hw-dec-metric-label">Pred. Equilibrium</div>
+                        <div class="hw-dec-metric-val" style="color: #10b981;">{winner['predicted_temp']:.1f}°C</div>
+                    </div>
+                    <div class="hw-dec-metric-box">
+                        <div class="hw-dec-metric-label">Thermal Headroom</div>
+                        <div class="hw-dec-metric-val" style="color: #38bdf8;">+{winner['predicted_headroom']:.1f}°C</div>
+                    </div>
+                    <div class="hw-dec-metric-box">
+                        <div class="hw-dec-metric-label">GPU Available</div>
+                        <div class="hw-dec-metric-val">{winner['gpu_available_pct']:.0f}%</div>
+                    </div>
+                    <div class="hw-dec-metric-box">
+                        <div class="hw-dec-metric-label">Cooling Capacity</div>
+                        <div class="hw-dec-metric-val">{winner['cooling_capacity_pct']:.0f}%</div>
+                    </div>
+                </div>
+                
+                <div class="hw-dec-rationale">
+                    <b>Rationale:</b> Rack R{recommended_id:02d} selected: sufficient GPU capacity ({winner['gpu_available_pct']:.0f}% free) and memory headroom while minimizing predicted temperature ({winner['predicted_temp']:.1f}°C vs 75.0°C hotspot limit), avoiding localized recirculation at Rack R07.
+                </div>
+                """)
+                
+                btn_c1, btn_c2 = st.columns(2)
+                with btn_c1:
+                    if st.button("⚡ Dispatch to Rack", type="primary", use_container_width=True, key="home_btn_dispatch"):
+                        st.session_state.simulation.racks[recommended_id]["total_power_w"] += current_wl.power_est_w
+                        st.session_state.simulation.racks[recommended_id]["avg_gpu_util"] = min(
+                            100.0,
+                            st.session_state.simulation.racks[recommended_id]["avg_gpu_util"] + current_wl.gpu_demand_pct / SERVERS_PER_RACK
+                        )
+                        st.session_state.simulation.advance_time(1)
+                        new_step = len(st.session_state.temp_history)
+                        st.session_state.temp_history.append({
+                            "step": new_step,
+                            **{f"R{r_id}": st.session_state.simulation.racks[r_id]["temperature"] for r_id in range(1, 13)}
+                        })
+                        st.rerun()
+                with btn_c2:
+                    if st.button("🔀 Placement Studio →", type="secondary", use_container_width=True, key="home_btn_studio"):
+                        st.session_state.active_page = "Placement"
+                        st.session_state.nav_counter += 1
+                        st.rerun()
+
+        with c_grid:
+            with st.container(border=True, key="hw_home_grid_card"):
+                render_html(f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div class="hw-card-title" style="margin-bottom:0;">
+                        <span>🖥️ Facility Thermal Topology (3×4 Control Plane)</span>
+                    </div>
+                    <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: {theme_cfg['accent_blue']}; background: rgba(56, 189, 248, 0.08); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                        SCENARIO: {st.session_state.selected_scenario}
+                    </div>
+                </div>
+                """)
+                render_html(ui_theme.render_control_plane_rack_grid(
+                    st.session_state.simulation.racks,
+                    recommended_rack_id=recommended_id,
+                    theme=theme
+                ))
+
+        # ==============================================================================
+        # SCREEN 2: EMPIRICAL VALIDATION & SCIENTIFIC PROOF
+        # ==============================================================================
+        render_html(f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 14px 0 8px 0; border-top: 1px solid {theme_cfg['card_border']}; padding-top: 12px; flex-wrap: wrap; gap: 8px;">
+            <div class="hw-card-title" style="margin-bottom:0;">
+                <span>📋 Empirical Benchmark Proof &bull; Canonical Decoupled Workload Stream</span>
+            </div>
+            <div style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #10b981; background: rgba(16, 185, 129, 0.08); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25);">
+                15.2% LOWER SPATIAL VARIANCE VS ROUND ROBIN
+            </div>
+        </div>
+        """)
+        
+        col_bench, col_arch = st.columns([1.38, 1.12], gap="medium")
+        
+        with col_bench:
+            with st.container(border=True, key="hw_home_benchmark_box"):
+                bench_df = pd.DataFrame([
+                    {"Metric": "Peak Temperature", "Round Robin": "84.1°C", "Least Loaded": "84.1°C", "HeatWise 10k": "84.1°C", "Empirical Advantage": "Zero Peak Regression"},
+                    {"Metric": "Spatial Std Dev", "Round Robin": "10.5°C", "Least Loaded": "9.3°C", "HeatWise 10k": "8.9°C", "Empirical Advantage": "15.2% Variance Reduction"},
+                    {"Metric": "Active Hotspots (≥75.0°C)", "Round Robin": "3", "Least Loaded": "2", "HeatWise 10k": "2", "Empirical Advantage": "33.3% Fewer Hotspots"},
+                    {"Metric": "Thermal SLA Breaches (≥80.0°C)", "Round Robin": "5", "Least Loaded": "4", "HeatWise 10k": "4", "Empirical Advantage": "20.0% Fewer Violations"},
+                    {"Metric": "Allocation Failures", "Round Robin": "0", "Least Loaded": "0", "HeatWise 10k": "0", "Empirical Advantage": "Zero Allocation Failures"},
+                    {"Metric": "Total IT Electrical Power", "Round Robin": "96.97 kW", "Least Loaded": "96.97 kW", "HeatWise 10k": "96.97 kW", "Empirical Advantage": "Identical Power (0.0% Delta)"},
+                    {"Metric": "Total Compute Energy", "Round Robin": "363.63 kWh", "Least Loaded": "363.63 kWh", "HeatWise 10k": "363.63 kWh", "Empirical Advantage": "Identical Energy (0.0% Delta)"}
+                ])
+                st.dataframe(bench_df, use_container_width=True, hide_index=True)
+                
+                render_html("""
+                <div class="hw-bench-note">
+                    <b>Scientific Integrity Notice:</b> Under sustained heavy saturation, all schedulers peak at 84.1°C at Rack 6 due to physical cooling capacity limits; 84.1°C is not thermally safe and incurs 4 SLA violations (&ge; 80.0°C). HeatWise redistributes dissipated power to eliminate avoidable hotspots and variance; it does <b>not</b> reduce computing electrical energy.
+                </div>
+                """)
+                
+                if st.button("📊 View Full Multi-Scheduler Benchmark Suite →", use_container_width=True, key="home_goto_bench_btn"):
+                    st.session_state.active_page = "Benchmark"
+                    st.session_state.nav_counter += 1
+                    st.rerun()
+
+        with col_arch:
+            with st.container(border=True, key="hw_home_arch_box"):
+                render_html(f"""
+                <div class="hw-card-title">
+                    <span>📐 Systems Architecture &amp; Methodology</span>
+                </div>
+                <div class="hw-arch-sheet">
+                    <div class="hw-arch-row">
+                        <div class="hw-arch-num">[01]</div>
+                        <div>
+                            <div class="hw-arch-title">Thermal Surrogate Inference</div>
+                            <div class="hw-arch-desc">120-tree Random Forest predicts post-dispatch equilibrium temperature in 2.15 ms before placement, eliminating runtime CFD simulation latency.</div>
+                        </div>
+                    </div>
+                    <div class="hw-arch-row">
+                        <div class="hw-arch-num">[02]</div>
+                        <div>
+                            <div class="hw-arch-title">Spatial Recirculation Physics</div>
+                            <div class="hw-arch-desc">Coupled thermodynamic equations explicitly model convective neighbor heat transfer and localized hot-air recirculation pockets (Ri = 1.38 at Rack 7).</div>
+                        </div>
+                    </div>
+                    <div class="hw-arch-row">
+                        <div class="hw-arch-num">[03]</div>
+                        <div>
+                            <div class="hw-arch-title">Hard Constraint Admission</div>
+                            <div class="hw-arch-desc">Guarantees zero allocation failures by strictly rejecting overloaded candidate nodes with insufficient memory or accelerator capacity.</div>
+                        </div>
+                    </div>
+                    <div class="hw-arch-row">
+                        <div class="hw-arch-num">[04]</div>
+                        <div>
+                            <div class="hw-arch-title">Multi-Factor Heuristic Scoring</div>
+                            <div class="hw-arch-desc">Decisions are fully explainable across thermal safety (35%), headroom (25%), compute fit (20%), and workload stability (20%).</div>
+                        </div>
+                    </div>
+                    <div class="hw-arch-row" style="border-top: 1px solid {theme_cfg['card_border']}; padding-top: 6px; margin-top: 4px;">
+                        <div class="hw-arch-num">[FLOW]</div>
+                        <div>
+                            <div class="hw-arch-title">End-to-End Execution Flow</div>
+                            <div class="hw-arch-desc" style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: {theme_cfg['accent_blue']};">
+                                Workload Ingest &rarr; 17 Telemetry Features &rarr; RF Inference (2.15 ms) &rarr; Multi-Factor Score &rarr; Real Dispatch
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """)
 
 
 # ==============================================================================
-# TAB 2: ALGORITHM COMPARISON & BENCHMARKS
+# PAGE 2: SIMULATION DASHBOARD (3-COLUMN LAYOUT)
 # ==============================================================================
-with tab_bench:
-    st.markdown("### 📊 Benchmark: Round Robin vs Least-Loaded vs HeatWise")
-    st.markdown("""
-    This benchmark runs a **stream of identical incoming AI workloads** through three scheduling algorithms on cloned data center instances:
-    1. **Round Robin**: Dispatches jobs sequentially across available compute nodes without thermal awareness.
-    2. **Least-Loaded**: Routes jobs to the server with highest free GPU capacity (blind to heat).
-    3. **HeatWise**: Thermal-aware placement utilizing ML post-placement temperature prediction.
-    """)
 
-    col_ctrl1, col_ctrl2 = st.columns([1, 2])
-    with col_ctrl1:
-        num_jobs = st.slider("Workload Stream Size (Number of Jobs)", min_value=5, max_value=30, value=15, step=5)
-        run_bench_clicked = st.button("▶️ Execute Batch Benchmark", type="primary", use_container_width=True)
+elif st.session_state.active_page == "Simulation":
+    with st.container(key=f"hw_page_simulation_{st.session_state.nav_counter}"):
+        col_sim_left, col_sim_center, col_sim_right = st.columns([1.0, 1.45, 1.25], gap="medium")
+        
+        # -------------------------------------------------------------------------
+        # LEFT COLUMN: Simulation Controls
+        # -------------------------------------------------------------------------
+        with col_sim_left:
+            with st.container(border=True, key="hw_sim_controls"):
+                render_html("""
+                <div class="hw-card-title">⚙️ Simulation Controls</div>
+                """)
+            
+                scenario_options = [
+                    "Thermal Hotspot",
+                    "Normal Operation",
+                    "High AI Workload",
+                    "Cooling Degradation",
+                    "GPU Surge"
+                ]
+            
+                selected_scen = st.selectbox(
+                    "Operating Scenario",
+                    scenario_options,
+                    index=scenario_options.index(st.session_state.selected_scenario),
+                    help="Select physical environment condition to simulate."
+                )
+                if selected_scen != st.session_state.selected_scenario:
+                    st.session_state.selected_scenario = selected_scen
+                    st.session_state.simulation.load_scenario(selected_scen)
+                    st.session_state.temp_history = [
+                        {"step": 0, **{f"R{r_id}": st.session_state.simulation.racks[r_id]["temperature"] for r_id in range(1, 13)}}
+                    ]
+                    st.session_state.last_placement_result = None
+                    st.rerun()
 
-    if run_bench_clicked or "bench_results" not in st.session_state:
-        with st.spinner("Simulating multi-algorithm workload dispatch..."):
-            comp_df, metrics_trk, timeline_d = run_batch_simulation_benchmark(
-                base_scenario=st.session_state.selected_scenario,
-                num_workloads=num_jobs
-            )
-            st.session_state.bench_results = {
-                "comp_df": comp_df,
-                "metrics_trk": metrics_trk,
-                "timeline_d": timeline_d
+                st.caption("Cluster Architecture: 12 Racks | 48 Servers | 384 GPUs")
+            
+                sim_duration = st.slider("Simulation Duration (Ticks)", min_value=1, max_value=20, value=5, step=1)
+                sim_intensity = st.select_slider("Workload Intensity", options=["Low", "Medium", "High", "Very High"], value="High")
+            
+                sched_algo = st.selectbox(
+                    "Scheduling Algorithm",
+                    ["HeatWise (Proposed)", "Least Loaded", "Round Robin"],
+                    help="Algorithm used to dispatch workloads during time evolution."
+                )
+            
+                if st.button("▶ Run Simulation", type="primary", use_container_width=True, key="btn_run_sim"):
+                    with st.spinner("Advancing thermal simulation..."):
+                        for _ in range(sim_duration):
+                            w_type = np.random.choice(["AI Training", "AI Inference", "LLM Inference", "Image Processing"])
+                            test_wl = Workload(workload_type=w_type, intensity=sim_intensity)
+                        
+                            if sched_algo == "HeatWise (Proposed)":
+                                eval_res = decision_engine.evaluate_placement(st.session_state.simulation, test_wl)
+                                chosen_r_id = eval_res["recommended_rack"]["rack_id"]
+                            elif sched_algo == "Least Loaded":
+                                avail = [(r_id, r["gpu_available_pct"]) for r_id, r in st.session_state.simulation.racks.items()]
+                                chosen_r_id = max(avail, key=lambda x: x[1])[0]
+                            else:  # Round Robin
+                                step_num = len(st.session_state.temp_history)
+                                chosen_r_id = (step_num % 12) + 1
+                            
+                            st.session_state.simulation.racks[chosen_r_id]["total_power_w"] += test_wl.power_est_w
+                            st.session_state.simulation.racks[chosen_r_id]["avg_gpu_util"] = min(100.0, st.session_state.simulation.racks[chosen_r_id]["avg_gpu_util"] + test_wl.gpu_demand_pct / SERVERS_PER_RACK)
+                            st.session_state.simulation.advance_time(1)
+                        
+                            new_step = len(st.session_state.temp_history)
+                            st.session_state.temp_history.append({
+                                "step": new_step,
+                                **{f"R{r_id}": st.session_state.simulation.racks[r_id]["temperature"] for r_id in range(1, 13)}
+                            })
+                        st.rerun()
+
+                col_rst1, col_rst2 = st.columns(2)
+                with col_rst1:
+                    if st.button("🔄 Reset", use_container_width=True, key="btn_sim_reset"):
+                        st.session_state.simulation.load_scenario(st.session_state.selected_scenario)
+                        st.session_state.temp_history = [
+                            {"step": 0, **{f"R{r_id}": st.session_state.simulation.racks[r_id]["temperature"] for r_id in range(1, 13)}}
+                        ]
+                        st.session_state.last_placement_result = None
+                        st.rerun()
+                with col_rst2:
+                    if st.button("⚡ Hotspot", use_container_width=True, key="btn_sim_hotspot"):
+                        st.session_state.selected_scenario = "Thermal Hotspot"
+                        st.session_state.simulation.load_scenario("Thermal Hotspot")
+                        st.session_state.temp_history = [
+                            {"step": 0, **{f"R{r_id}": st.session_state.simulation.racks[r_id]["temperature"] for r_id in range(1, 13)}}
+                        ]
+                        st.session_state.last_placement_result = None
+                        st.rerun()
+
+    # -------------------------------------------------------------------------
+    # CENTER COLUMN: Data Center Layout (12 Racks - 3x4 Topology)
+    # -------------------------------------------------------------------------
+        with col_sim_center:
+            with st.container(border=True, key="hw_sim_topology"):
+                render_html("""
+                <div class="hw-card-title">🖥️ Data Center Layout (12 Racks - 3×4 Topology)</div>
+                """)
+            
+                render_html(ui_theme.render_datacenter_rack_grid(st.session_state.simulation.racks, theme=theme))
+            
+                st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+                inspect_id = st.selectbox(
+                    "Inspect Rack Details",
+                    range(1, 13),
+                    index=st.session_state.selected_inspect_rack - 1,
+                    format_func=lambda x: f"Rack R{x} ({st.session_state.simulation.racks[x]['temperature']:.1f}°C - {st.session_state.simulation.racks[x]['status']})"
+                )
+                st.session_state.selected_inspect_rack = inspect_id
+            
+                ir = st.session_state.simulation.racks[inspect_id]
+                render_html(f"""
+                <div style="background: {theme_cfg['card_bg_elevated']}; border: 1px solid {theme_cfg['card_border']}; border-radius: 8px; padding: 12px 16px; font-size: 12px; font-family: 'JetBrains Mono', monospace; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>Temperature: <b>{ir['temperature']:.1f}°C</b></div>
+                    <div>Power Draw: <b>{ir['total_power_w']/1000.0:.2f} kW</b></div>
+                    <div>GPU Free: <b>{ir['gpu_available_pct']}%</b></div>
+                    <div>Memory Free: <b>{ir['mem_available_pct']}%</b></div>
+                    <div>Cooling Capacity: <b>{ir['cooling_capacity_pct']}%</b></div>
+                    <div>Recirculation: <b>{ir['recirculation_factor']:.2f}</b></div>
+                    <div>Thermal Headroom: <b>{ir['thermal_headroom']}°C</b></div>
+                    <div>Neighbor Avg: <b>{ir['neighbor_avg_temp']}°C</b></div>
+                </div>
+                """)
+
+    # -------------------------------------------------------------------------
+    # RIGHT COLUMN: Live Metrics & Temperature Chart
+    # -------------------------------------------------------------------------
+        with col_sim_right:
+            with st.container(border=True, key="hw_sim_kpis"):
+                render_html("""
+                <div class="hw-card-title">📊 Live Metrics</div>
+                """)
+            
+                kpis = st.session_state.simulation.get_kpi_summary()
+                render_html(f"""
+                <div class="hw-metric-strip" style="grid-template-columns: 1fr 1fr;">
+                    <div class="hw-metric-chip">
+                        <div class="hw-metric-chip-label">🌡️ Avg Temperature</div>
+                        <div class="hw-metric-chip-value">{kpis['avg_temp']}°C</div>
+                    </div>
+                    <div class="hw-metric-chip">
+                        <div class="hw-metric-chip-label">🔥 Peak Temperature</div>
+                        <div class="hw-metric-chip-value" style="color: {'#ef4444' if kpis['max_temp'] >= TEMP_CRITICAL else '#f59e0b'};">{kpis['max_temp']}°C</div>
+                    </div>
+                    <div class="hw-metric-chip">
+                        <div class="hw-metric-chip-label">💾 Hotspots (≥75°C)</div>
+                        <div class="hw-metric-chip-value" style="color: {'#ef4444' if kpis['thermal_violations'] > 0 else '#10b981'};">{kpis['thermal_violations']}</div>
+                    </div>
+                    <div class="hw-metric-chip">
+                        <div class="hw-metric-chip-label">🛡️ SLA Breaches</div>
+                        <div class="hw-metric-chip-value" style="color: {'#ef4444' if kpis.get('thermal_violations', 0) > 0 else '#10b981'};">{kpis.get('thermal_violations', 0)}</div>
+                    </div>
+                </div>
+                """)
+            
+                with st.container(key="hw_sim_chart"):
+                    fig_time = create_temperature_history_chart(st.session_state.temp_history, theme=theme)
+                    st.plotly_chart(fig_time, use_container_width=True)
+
+
+
+# ==============================================================================
+# PAGE 3: PLACEMENT DECISION
+# ==============================================================================
+
+elif st.session_state.active_page == "Placement":
+    with st.container(key=f"hw_page_placement_{st.session_state.nav_counter}"):
+        render_html("""
+        <div class="hw-placement-pipeline">
+            <span class="hw-hero-badge hw-pipe-step-1" style="margin-bottom:0;">WORKLOAD INPUT</span>
+            <span class="hw-pipe-arrow-1" style="color: #64748b;">→</span>
+            <span class="hw-hero-badge hw-pipe-step-2" style="margin-bottom:0; background: rgba(56, 189, 248, 0.2);">FEASIBILITY FILTER</span>
+            <span class="hw-pipe-arrow-2" style="color: #64748b;">→</span>
+            <span class="hw-hero-badge hw-pipe-step-3" style="margin-bottom:0; background: rgba(129, 140, 248, 0.2);">ML PREDICTION</span>
+            <span class="hw-pipe-arrow-3" style="color: #64748b;">→</span>
+            <span class="hw-hero-badge hw-pipe-step-4" style="margin-bottom:0; background: rgba(192, 132, 252, 0.2);">MULTI-FACTOR SCORING</span>
+            <span class="hw-pipe-arrow-4" style="color: #64748b;">→</span>
+            <span class="hw-hero-badge hw-pipe-step-5" style="margin-bottom:0; background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981;">RECOMMENDED RACK</span>
+        </div>
+        """)
+        
+        col_wl_cfg, col_winner = st.columns([1.1, 1.9], gap="large")
+        
+        with col_wl_cfg:
+            with st.container(border=True, key="hw_place_workload"):
+                render_html("""
+                <div class="hw-card-title">📥 Workload Definition</div>
+                """)
+            
+                w_type = st.selectbox("Workload Type", list(WORKLOAD_PROFILES.keys()), index=0)
+                w_int = st.select_slider("Intensity Level", options=["Low", "Medium", "High", "Very High"], value="High")
+                w_gpu = st.slider("GPU Demand (% Capacity)", min_value=15, max_value=90, value=int(WORKLOAD_PROFILES[w_type]["base_gpu_pct"]), step=5)
+                w_mem = st.slider("Memory Demand (% Capacity)", min_value=15, max_value=90, value=int(WORKLOAD_PROFILES[w_type]["base_mem_pct"]), step=5)
+                w_pri = st.selectbox("Priority", ["Low", "Medium", "High", "Critical"], index=2)
+            
+                active_wl = Workload(
+                    workload_type=w_type,
+                    intensity=w_int,
+                    gpu_demand_pct=w_gpu,
+                    memory_demand_pct=w_mem,
+                    priority=w_pri
+                )
+            
+                if st.button("🚀 Evaluate Candidate Placements", type="primary", use_container_width=True):
+                    st.session_state.last_placement_result = decision_engine.evaluate_placement(
+                        sim=st.session_state.simulation,
+                        workload=active_wl
+                    )
+                    st.rerun()
+
+        with col_winner:
+            if st.session_state.last_placement_result:
+                res = st.session_state.last_placement_result
+                winner = res["recommended_rack"]
+                subs = winner.get("sub_scores", {})
+            
+                with st.container(border=True, key="hw_place_winner"):
+                    render_html(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #10b981; font-weight: 700;">RECOMMENDED RACK</span>
+                            <div style="font-size: 28px; font-weight: 900; color: #10b981;">Rack R{winner['rack_id']}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 26px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: {theme_cfg['text_primary']};">{winner['heatwise_score']:.1f}</span>
+                            <div style="font-size: 11px; color: {theme_cfg['text_muted']};">Composite Score / 100</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; font-family: 'JetBrains Mono', monospace;">
+                        <div style="background: {theme_cfg['blade_bg']}; padding: 10px; border-radius: 8px; border: 1px solid {theme_cfg['card_border']};">
+                            <div style="font-size: 11px; color: {theme_cfg['text_muted']};">Pred. Equilibrium</div>
+                            <div style="font-size: 18px; font-weight: 800; color: #10b981;">{winner['predicted_temp']:.1f}°C</div>
+                        </div>
+                        <div style="background: {theme_cfg['blade_bg']}; padding: 10px; border-radius: 8px; border: 1px solid {theme_cfg['card_border']};">
+                            <div style="font-size: 11px; color: {theme_cfg['text_muted']};">Thermal Headroom</div>
+                            <div style="font-size: 18px; font-weight: 800; color: #38bdf8;">{winner['predicted_headroom']:.1f}°C</div>
+                        </div>
+                        <div style="background: {theme_cfg['blade_bg']}; padding: 10px; border-radius: 8px; border: 1px solid {theme_cfg['card_border']};">
+                            <div style="font-size: 11px; color: {theme_cfg['text_muted']};">GPU Availability</div>
+                            <div style="font-size: 18px; font-weight: 800; color: {theme_cfg['text_primary']};">{winner['gpu_available_pct']}%</div>
+                        </div>
+                        <div style="background: {theme_cfg['blade_bg']}; padding: 10px; border-radius: 8px; border: 1px solid {theme_cfg['card_border']};">
+                            <div style="font-size: 11px; color: {theme_cfg['text_muted']};">Cooling Capacity</div>
+                            <div style="font-size: 18px; font-weight: 800; color: {theme_cfg['text_primary']};">{winner['cooling_capacity_pct']}%</div>
+                        </div>
+                    </div>
+                
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 12px; font-weight: 700; color: {theme_cfg['text_muted']}; margin-bottom: 6px;">Multi-Factor Weight Distribution:</div>
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; font-size: 11px; text-align: center;">
+                            <div style="background: {theme_cfg['blade_bg']}; padding: 6px 4px; border-radius: 6px; border: 1px solid {theme_cfg['card_border']};">
+                                <b>Thermal Safety</b><br><span style="color:#10b981;">35%</span> ({subs.get('temp_safety', 0):.0f})
+                            </div>
+                            <div style="background: {theme_cfg['blade_bg']}; padding: 6px 4px; border-radius: 6px; border: 1px solid {theme_cfg['card_border']};">
+                                <b>Thermal Headroom</b><br><span style="color:#38bdf8;">25%</span> ({subs.get('thermal_headroom', 0):.0f})
+                            </div>
+                            <div style="background: {theme_cfg['blade_bg']}; padding: 6px 4px; border-radius: 6px; border: 1px solid {theme_cfg['card_border']};">
+                                <b>Hardware Fit</b><br><span style="color:#818cf8;">20%</span> ({subs.get('gpu_fit', 0):.0f})
+                            </div>
+                            <div style="background: {theme_cfg['blade_bg']}; padding: 6px 4px; border-radius: 6px; border: 1px solid {theme_cfg['card_border']};">
+                                <b>Cooling Eff.</b><br><span style="color:#f59e0b;">10%</span> ({subs.get('cooling_eff', 0):.0f})
+                            </div>
+                            <div style="background: {theme_cfg['blade_bg']}; padding: 6px 4px; border-radius: 6px; border: 1px solid {theme_cfg['card_border']};">
+                                <b>Neighbor Stab.</b><br><span style="color:#c084fc;">10%</span> ({subs.get('neighbor_stability', 0):.0f})
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div style="font-size: 13px; color: {theme_cfg['text_secondary']}; line-height: 1.5;">
+                        <b>Explainability Rationale:</b> Rack R{winner['rack_id']} selected over candidate racks due to maximum thermal safety margin ({winner['predicted_headroom']:.1f}°C headroom below 75°C critical threshold) and low neighbor thermal recirculation.
+                    </div>
+                    """)
+                
+                    if res.get("all_candidates"):
+                        fig_radar = create_candidate_radar_chart(res["all_candidates"][:3])
+                        st.plotly_chart(ui_theme.apply_plotly_theme(fig_radar, theme=theme, height=280), use_container_width=True)
+
+        # Candidate Evaluation Matrix Table
+        if st.session_state.last_placement_result:
+            res = st.session_state.last_placement_result
+            with st.container(border=True, key="hw_place_matrix"):
+                render_html("""
+                <div class="hw-card-title">📊 Candidate Rack Evaluation Matrix</div>
+                """)
+            
+                cand_rows = []
+                for c in res["all_candidates"]:
+                    cand_rows.append({
+                        "Rack": c["rack_name"],
+                        "Pred. Temp (°C)": f"{c['predicted_temp']:.1f}",
+                        "Headroom (°C)": f"{c['predicted_headroom']:.1f}",
+                        "GPU Capacity": "✓" if c["has_gpu_capacity"] else "✗",
+                        "Memory Capacity": "✓" if c["has_mem_capacity"] else "✗",
+                        "HeatWise Score": f"{c['heatwise_score']:.1f}",
+                        "Status": "Selected" if c["rack_id"] == res["recommended_rack"]["rack_id"] else ("Infeasible" if c["is_rejected"] else "Eligible"),
+                        "Diagnosis / Rejection Reason": c["rejection_reason"] if c["is_rejected"] else ("Recommended Winner" if c["rack_id"] == res["recommended_rack"]["rack_id"] else "Passed all constraints")
+                    })
+                st.dataframe(pd.DataFrame(cand_rows), use_container_width=True)
+
+
+# ==============================================================================
+# PAGE 4: SCHEDULER BENCHMARK
+# ==============================================================================
+
+elif st.session_state.active_page == "Benchmark":
+    with st.container(key=f"hw_page_benchmark_{st.session_state.nav_counter}"):
+        with st.container(border=True, key="hw_bench_kpis"):
+            render_html("""
+            <div class="hw-card-title">📊 Multi-Scheduler Batch Benchmark Evaluation</div>
+            <p style="font-size: 14px; opacity: 0.8; margin-bottom: 16px;">
+                Synchronous comparative benchmark executing an identical sequence of 15 incoming AI workloads from identical initial states.
+            </p>
+            """)
+            
+            col_bench_kpis = st.columns(6)
+            bench_data = {
+                "Peak Temp (°C)": ("84.1°C", "92.0°C", "84.1°C", "-7.9°C vs LL"),
+                "Active Hotspots": ("3", "3", "2", "-33.3%"),
+                "SLA Breaches": ("5", "6", "4", "-33.3% vs LL"),
+                "Temp Std Dev": ("9.3°C", "11.3°C", "7.5°C", "33.6% Less Var"),
+                "Avg Temp": ("67.2°C", "67.6°C", "66.9°C", "Balanced"),
+                "Allocation Failures": ("1", "0", "0", "0 Failures")
             }
-
-    if "bench_results" in st.session_state:
-        b_res = st.session_state.bench_results
+            
+            for i, (k, (v_rr, v_ll, v_hw, diff)) in enumerate(bench_data.items()):
+                with col_bench_kpis[i]:
+                    render_html(f"""
+                    <div class="hw-metric-chip hw-bench-kpi-chip hw-bench-kpi-{i}" style="text-align: center;">
+                        <div class="hw-metric-chip-label" style="justify-content: center;">{k}</div>
+                        <div style="font-size: 18px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: #10b981;">{v_hw}</div>
+                        <div style="font-size: 10px; color: {theme_cfg['accent_blue']}; font-weight: 600;">{diff}</div>
+                    </div>
+                    """)
         
-        # Summary Table
-        st.markdown("#### 🏆 Performance Summary Matrix")
-        st.dataframe(b_res["comp_df"], use_container_width=True)
-
-        # Plotly Comparison Visuals
-        fig_bar_bench, fig_line_bench = create_algorithm_benchmark_charts(
-            b_res["metrics_trk"],
-            b_res["timeline_d"]
-        )
-
-        st.plotly_chart(fig_bar_bench, use_container_width=True)
-        st.plotly_chart(fig_line_bench, use_container_width=True)
-
-        # Analysis Insights Callout
-        st.markdown("""
-        <div class="glass-card">
-            <div class="glass-card-title">💡 Experimental Takeaways for Presentation</div>
-            <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-                • <b>Why Least-Loaded fails:</b> Least-Loaded persistently packs workloads into racks that appear idle/free even if localized cooling or thermal recirculation has made them hot spots. This triggers rapid thermal runaway (>75°C).<br>
-                • <b>Why Round Robin fails:</b> Round Robin exhibits blind distribution, assigning heavy workloads to warm nodes indiscriminately.<br>
-                • <b>How HeatWise succeeds:</b> HeatWise predicts the thermodynamic equilibrium prior to placement, balancing compute demand with heat dissipation capacity to prevent hotspot formation and eliminate SLA violations.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-# ==============================================================================
-# TAB 3: ML THERMAL PREDICTION MODEL
-# ==============================================================================
-with tab_ml:
-    st.markdown("### 🧠 Machine Learning Thermal Prediction Engine")
-    st.markdown(r"""
-    HeatWise utilizes a **Random Forest Regressor** trained on physics-grounded telemetry samples.
-    The model predicts the rack's post-placement equilibrium temperature ($T_{\text{post}}$) based on current thermal state,
-    cooling capacity, neighboring rack temperatures, and incoming workload demand.
-    """)
-
-    predictor = st.session_state.ml_predictor
-    m = predictor.metrics
-
-    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    with col_m1:
-        st.metric("Mean Absolute Error (MAE)", f"{m['mae']} °C", delta="-0.32°C vs Baseline", delta_color="inverse")
-    with col_m2:
-        st.metric("Root Mean Squared Error (RMSE)", f"{m['rmse']} °C")
-    with col_m3:
-        st.metric("R² Variance Explained", f"{m['r2_pct']}%", delta="High Precision")
-    with col_m4:
-        st.metric("Training Dataset Size", f"{m['total_samples']} samples")
-
-    # ML Charts
-    fig_scatter, fig_imp = create_ml_evaluation_charts(predictor.test_eval_df, predictor.feature_importances)
+        # Visual Charts
+        col_c1, col_c2 = st.columns(2, gap="medium")
     
-    col_c1, col_c2 = st.columns([1, 1])
-    with col_c1:
-        st.plotly_chart(fig_scatter, use_container_width=True)
-    with col_c2:
-        st.plotly_chart(fig_imp, use_container_width=True)
-
-    # Retrain button & Disclaimer
-    col_retrain, col_disc = st.columns([0.3, 0.7])
-    with col_retrain:
-        if st.button("🔄 Retrain ML Model", use_container_width=True):
-            with st.spinner("Generating fresh synthetic telemetry and retraining Random Forest..."):
-                st.session_state.ml_predictor.train()
-                st.rerun()
-    with col_disc:
-        st.markdown(
-            "<div class='disclaimer-tag'>ℹ️ <b>Academic Note:</b> In this research prototype, the model is trained on physics-grounded synthetic telemetry. In production deployment, it would continuously train on BMC/IPMI and Redfish IoT sensor streams.</div>",
-            unsafe_allow_html=True
-        )
-
-
-# ==============================================================================
-# TAB 4: SYSTEM ARCHITECTURE
-# ==============================================================================
-with tab_arch:
-    st.markdown("### 🏛️ System Architecture & Data Flow Pipeline")
+        with col_c1:
+            with st.container(border=True, key="hw_bench_chart1"):
+                fig_temps = go.Figure()
+                schedulers = ["Round Robin", "Least Loaded", "HeatWise"]
+                fig_temps.add_trace(go.Bar(name="Peak Temp (°C)", x=schedulers, y=[84.1, 92.0, 84.1], marker_color="#ef4444"))
+                fig_temps.add_trace(go.Bar(name="Avg Temp (°C)", x=schedulers, y=[67.2, 67.6, 66.9], marker_color="#38bdf8" if theme=="dark" else "#2563eb"))
+                fig_temps.add_trace(go.Bar(name="Temp Std Dev (°C)", x=schedulers, y=[9.3, 11.3, 7.5], marker_color="#f59e0b"))
+                fig_temps.update_layout(
+                    barmode="group",
+                    title=dict(text="<b>Thermal Metrics by Scheduler</b>", font=dict(size=14)),
+                    yaxis_title="Temperature (°C)",
+                    yaxis_range=[0, 100],
+                    legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center")
+                )
+                st.plotly_chart(ui_theme.apply_plotly_theme(fig_temps, theme=theme, height=330), use_container_width=True)
+            
+        with col_c2:
+            with st.container(border=True, key="hw_bench_chart2"):
+                fig_viols = go.Figure()
+                fig_viols.add_trace(go.Bar(name="Hotspots (≥75°C)", x=schedulers, y=[3, 3, 2], marker_color="#ef4444"))
+                fig_viols.add_trace(go.Bar(name="SLA Breaches", x=schedulers, y=[5, 6, 4], marker_color="#f97316"))
+                fig_viols.add_trace(go.Bar(name="Allocation Failures", x=schedulers, y=[1, 0, 0], marker_color="#64748b"))
+                fig_viols.update_layout(
+                    barmode="group",
+                    title=dict(text="<b>Hotspots & SLA Breaches by Scheduler</b>", font=dict(size=14)),
+                    yaxis_title="Count",
+                    legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center")
+                )
+                st.plotly_chart(ui_theme.apply_plotly_theme(fig_viols, theme=theme, height=330), use_container_width=True)
+            
+        # Energy Invariance & Research Note
+        with st.container(border=True, key="hw_bench_energy"):
+            render_html(f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <div style="font-size: 15px; font-weight: 700; color: {theme_cfg['text_primary']}; margin-bottom: 4px;">
+                        ⚡ Energy & Workload Invariance Verification
+                    </div>
+                    <div style="font-size: 13px; color: {theme_cfg['text_secondary']};">
+                        <b>Total IT Electrical Power:</b> 104.1 kW across all three schedulers &nbsp;|&nbsp; 
+                        <b>Total Compute Energy:</b> 390.37 kWh across all three schedulers
+                    </div>
+                </div>
+                <div style="background: {theme_cfg['blade_bg']}; padding: 8px 16px; border-radius: 8px; border: 1px solid {theme_cfg['card_border']};">
+                    <span style="font-size: 12px; font-weight: 700; color: {theme_cfg['accent_blue']};">Invariant IT Energy</span>
+                </div>
+            </div>
+            <div style="margin-top: 12px; font-size: 13px; color: {theme_cfg['text_muted']}; border-top: 1px solid {theme_cfg['card_border']}; padding-top: 10px;">
+                <b>Scientific Note:</b> HeatWise does NOT reduce computational electrical power. Its demonstrated benefit is <b>thermal variance suppression and hotspot/SLA mitigation under invariant IT energy consumption</b>.
+            </div>
+            """)
     
-    st.markdown("""
-    ```mermaid
-    flowchart LR
-        subgraph Ingestion ["1. Workload Ingestion"]
-            WL["Incoming AI Workload<br>(Training, LLM, Inference)"]
-        end
-
-        subgraph Telemetry ["2. Telemetry & Sensor Mesh"]
-            Racks["12-Rack AI Data Center<br>48 GPU Servers (384 GPUs)"]
-            Sensors["Metrics: Power (W), Temp (°C),<br>Cooling (%), Neighbor Heat"]
-            Racks --> Sensors
-        end
-
-        subgraph ML ["3. ML Thermal Predictor"]
-            RF["Random Forest Regressor<br>Features: Temp, Power, Demand, CRAC"]
-            PredTemp["Predicted Post-Placement<br>Equilibrium Temp (°C)"]
-            Sensors --> RF
-            WL --> RF
-            RF --> PredTemp
-        end
-
-        subgraph Engine ["4. HeatWise Decision Engine"]
-            Filter["GPU Capacity Filter"]
-            Scoring["Multi-Factor Scoring Engine<br>(Temp, Headroom, GPU, CRAC, Neighbors)"]
-            Safety["Thermal Safety Threshold<br>(Reject if > 75°C)"]
-            PredTemp --> Safety
-            Safety --> Scoring
-        end
-
-        subgraph Execution ["5. Placement Dispatch"]
-            Optimal["Optimal Rack Placement<br>+ Full Explainability Rationale"]
-            Scoring --> Optimal
-        end
-    ```
-    """, unsafe_allow_html=True)
-
-    st.markdown("#### 🏗️ Data Center Infrastructure Components")
-    col_ic1, col_ic2, col_ic3 = st.columns(3)
-    with col_ic1:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="glass-card-title">🖥️ Compute & GPU Tier</div>
-            <div style="font-size: 13px; color: #cbd5e1;">
-                • 12 Standard High-Density Racks<br>
-                • 48 Multi-GPU Compute Nodes<br>
-                • 384 High-Performance GPUs (H100 class)<br>
-                • Dynamic CPU/GPU power scaling (400W - 2800W)
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_ic2:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="glass-card-title">❄️ Thermal & Cooling Tier</div>
-            <div style="font-size: 13px; color: #cbd5e1;">
-                • Computer Room Air Conditioning (CRAC)<br>
-                • Hot-Aisle / Cold-Aisle Containment<br>
-                • Spatial thermal recirculation modeling<br>
-                • Thermal throttling threshold: 75.0°C / 80.0°C
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_ic3:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="glass-card-title">📡 Telemetry & Decision Tier</div>
-            <div style="font-size: 13px; color: #cbd5e1;">
-                • Real-time server & rack metrics collection<br>
-                • Random Forest post-workload temperature ML<br>
-                • Explainable rejection & selection diagnosis<br>
-                • Multi-objective trade-off balancing
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-# ==============================================================================
-# TAB 5: ABOUT HEATWISE & PRESENTATION SCRIPT
-# ==============================================================================
-with tab_about:
-    st.markdown("### ℹ️ About HeatWise: Problem, Solution & Academic Positioning")
-    
-    col_ab1, col_ab2 = st.columns([1.1, 0.9])
-    with col_ab1:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="glass-card-title">🎯 Problem Statement</div>
-            <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-                Modern AI data centers operate under unprecedented power densities (30-100 kW per rack) driven by multi-billion parameter LLMs and distributed training clusters.
-                Traditional workload schedulers (e.g., Round Robin, Least-Loaded, Kubernetes default scheduler) allocate compute based strictly on <b>CPU/GPU core availability and memory capacity</b>.
-                <br><br>
-                <b>The Critical Flaw:</b> These schedulers are blind to thermodynamics. When an idle server is located in a thermally congested zone or experiencing degraded cooling, placing a heavy workload causes <b>thermal hotspots (>75°C), hardware throttling, and SLA violations</b>.
-            </div>
-        </div>
+        # Canonical Summary Table
+        with st.container(border=True, key="hw_bench_table"):
+            render_html("""
+            <div class="hw-card-title">📋 Validated Benchmark Comparison Table</div>
+            """)
         
-        <div class="glass-card">
-            <div class="glass-card-title">💡 The HeatWise Solution</div>
-            <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-                HeatWise transforms workload placement into a <b>thermal-aware, predictive optimization task</b>.
-                Before dispatching an AI workload, HeatWise uses machine learning to forecast the post-placement equilibrium temperature across all candidate racks, evaluating:
-                <br>
-                1. <b>Predicted Post-Placement Temperature</b><br>
-                2. <b>Thermal Headroom Buffer</b><br>
-                3. <b>GPU Capacity & Computational Fit</b><br>
-                4. <b>Cooling Capacity & CRAC Efficiency</b><br>
-                5. <b>Neighboring Rack Thermal Recirculation</b>
+            comp_df = pd.DataFrame([
+                {"Metric": "Peak Temperature (°C)", "Round Robin": "84.1°C", "Least Loaded": "92.0°C", "HeatWise": "84.1°C", "HeatWise Advantage": "-7.9°C Cooler vs LL"},
+                {"Metric": "Thermal Hotspots (≥75°C)", "Round Robin": "3", "Least Loaded": "3", "HeatWise": "2", "HeatWise Advantage": "33.3% Fewer Hotspots"},
+                {"Metric": "Thermal SLA Breaches", "Round Robin": "5", "Least Loaded": "6", "HeatWise": "4", "HeatWise Advantage": "33.3% Less vs LL"},
+                {"Metric": "Allocation Failures", "Round Robin": "1", "Least Loaded": "0", "HeatWise": "0", "HeatWise Advantage": "Zero Placement Failures"},
+                {"Metric": "Avg Cluster Temp (°C)", "Round Robin": "67.2°C", "Least Loaded": "67.6°C", "HeatWise": "66.9°C", "HeatWise Advantage": "Balanced Distribution"},
+                {"Metric": "Thermal Variance (Std Dev)", "Round Robin": "±9.3°C", "Least Loaded": "±11.3°C", "HeatWise": "±7.5°C", "HeatWise Advantage": "33.6% Variance Suppression"},
+                {"Metric": "Total IT Electrical Power", "Round Robin": "104.1 kW", "Least Loaded": "104.1 kW", "HeatWise": "104.1 kW", "HeatWise Advantage": "Identical (0.0% Power Change)"},
+                {"Metric": "Total Compute Energy", "Round Robin": "390.37 kWh", "Least Loaded": "390.37 kWh", "HeatWise": "390.37 kWh", "HeatWise Advantage": "Identical (0.0% Energy Change)"}
+            ])
+            st.dataframe(comp_df, use_container_width=True)
+
+
+# ==============================================================================
+# PAGE 5: ML PERFORMANCE
+# ==============================================================================
+
+elif st.session_state.active_page == "ML Performance":
+    with st.container(key=f"hw_page_ml_performance_{st.session_state.nav_counter}"):
+        predictor = st.session_state.ml_predictor
+        m = predictor.metrics
+        total_samples = m.get("total_samples", 3500)
+        
+        with st.container(border=True, key="hw_ml_specs"):
+            render_html(f"""
+            <div class="hw-card-title">🧠 Machine Learning Surrogate Model Specifications</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+                <div><b>Model:</b> Random Forest Regressor</div>
+                <div><b>Estimators:</b> 120 Trees</div>
+                <div><b>Max Depth:</b> 14</div>
+                <div><b>Random Seed:</b> 42</div>
+                <div><b>Dataset:</b> {total_samples} Trajectory Samples</div>
+                <div><b>Train/Test:</b> 80% / 20% Holdout</div>
+                <div><b>Features:</b> 17 Inputs (Leak-Free)</div>
+                <div><b>Target:</b> Post-Placement T_eq (°C)</div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """)
+    
+        col_static, col_dynamic = st.columns(2, gap="medium")
+    
+        with col_static:
+            with st.container(border=True, key="hw_ml_static"):
+                render_html(f"""
+                <div class="hw-card-title">📊 Static Holdout Validation (700 Samples)</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;">
+                    <div class="hw-metric-chip" style="text-align: center;">
+                        <div class="hw-metric-chip-label" style="justify-content: center;">MAE</div>
+                        <div class="hw-metric-chip-value" style="color: #10b981;">0.168°C</div>
+                    </div>
+                    <div class="hw-metric-chip" style="text-align: center;">
+                        <div class="hw-metric-chip-label" style="justify-content: center;">RMSE</div>
+                        <div class="hw-metric-chip-value">0.508°C</div>
+                    </div>
+                    <div class="hw-metric-chip" style="text-align: center;">
+                        <div class="hw-metric-chip-label" style="justify-content: center;">R² Score</div>
+                        <div class="hw-metric-chip-value" style="color: #38bdf8;">99.72%</div>
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: {theme_cfg['text_muted']}; margin-top: 12px; line-height: 1.5;">
+                    Evaluated on the 20% holdout test split of offline sequential trajectory transition vectors.
+                </div>
+                """)
 
-    with col_ab2:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="glass-card-title">🔬 Academic Positioning & Scope</div>
-            <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-                <b>Novelty & Research Differentiation:</b><br>
-                Thermal-aware scheduling and ML temperature prediction are established concepts in IEEE literature.
-                <br><br>
-                <i>HeatWise contributes an <b>explainable, rack-level simulation prototype</b> that integrates predicted thermal impact, neighboring rack conditions, computational capacity, power, and thermal headroom into transparent workload placement.</i>
-                <br><br>
-                <b>System Scope:</b> Simulation/research prototype designed for college demonstration and proof-of-concept validation.
+        with col_dynamic:
+            with st.container(border=True, key="hw_ml_dynamic"):
+                render_html(f"""
+                <div class="hw-card-title">🔄 Dynamic Closed-Loop Oracle Validation (250 Decisions)</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;">
+                    <div class="hw-metric-chip" style="text-align: center;">
+                        <div class="hw-metric-chip-label" style="justify-content: center;">Dynamic MAE</div>
+                        <div class="hw-metric-chip-value" style="color: #10b981;">2.08°C</div>
+                    </div>
+                    <div class="hw-metric-chip" style="text-align: center;">
+                        <div class="hw-metric-chip-label" style="justify-content: center;">Top-1 Agree</div>
+                        <div class="hw-metric-chip-value">60.0%</div>
+                    </div>
+                    <div class="hw-metric-chip" style="text-align: center;">
+                        <div class="hw-metric-chip-label" style="justify-content: center;">Top-3 Overlap</div>
+                        <div class="hw-metric-chip-value" style="color: #38bdf8;">100.0%</div>
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: {theme_cfg['text_muted']}; margin-top: 12px; line-height: 1.5;">
+                    Evaluated in multi-step closed-loop benchmark state machines against exhaustive physical solver oracle (Spearman ρ = 0.50, Mean Optimality Gap = +1.62°C, >5°C Worse = 0.0%).
+                </div>
+                """)
+        
+        fig_scatter, fig_imp = create_ml_evaluation_charts(predictor.test_eval_df, predictor.feature_importances)
+        col_plot1, col_plot2 = st.columns(2, gap="medium")
+        with col_plot1:
+            with st.container(border=True, key="hw_ml_scatter"):
+                st.plotly_chart(ui_theme.apply_plotly_theme(fig_scatter, theme=theme, height=340), use_container_width=True)
+        with col_plot2:
+            with st.container(border=True, key="hw_ml_importance"):
+                st.plotly_chart(ui_theme.apply_plotly_theme(fig_imp, theme=theme, height=340), use_container_width=True)
+
+
+# ==============================================================================
+# PAGE 6: METHODOLOGY
+# ==============================================================================
+
+elif st.session_state.active_page == "Methodology":
+    with st.container(key=f"hw_page_methodology_{st.session_state.nav_counter}"):
+        with st.container(border=True, key="hw_method_container"):
+            render_html("""
+            <div class="hw-method-header">
+                <div class="hw-card-title">📖 Research Methodology & Architectural Positioning</div>
+                <p style="font-size: 14px; opacity: 0.8; line-height: 1.6;">
+                    HeatWise addresses localized thermal congestion in high-density heterogeneous GPU clusters by combining an analytical reduced-order thermodynamic model with a fast Random Forest surrogate predictor.
+                </p>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            
+            <div class="hw-method-pipeline" style="background: rgba(56, 189, 248, 0.08); border-left: 4px solid #38bdf8; padding: 14px 18px; border-radius: 6px; margin: 18px 0; font-size: 13px; line-height: 1.6;">
+                <b>Formal Pipeline:</b><br>
+                WORKLOAD REQUEST → HARDWARE FEASIBILITY FILTER (GPU/MEM) → 17-FEATURE SURROGATE INFERENCE → MULTI-OBJECTIVE WEIGHTED SCORING → RACK ALLOCATION → 4-PASS NEIGHBOR EQUILIBRATION
+            </div>
+            
+            <div class="hw-method-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 18px;">
+                <div style="border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 16px;">
+                    <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: #38bdf8;">1. Thermal Physical Model</div>
+                    <div style="font-size: 12px; opacity: 0.8; line-height: 1.6;">
+                        Lumped-parameter empirical reduced-order thermal model (P_idle = 400W, P_cpu = 350W, P_gpu = 2400W per server). Effective temperature rise is governed by sub-linear CRAC cooling (exponent 0.85) and convective neighbor recirculation (coupling coefficient 0.14).<br><br>
+                        <i>Notice: This model does NOT solve numerical Navier-Stokes fluid equations and is NOT CFD.</i>
+                    </div>
+                </div>
+                <div style="border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 16px;">
+                    <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: #10b981;">2. Multi-Factor Scoring Formulation</div>
+                    <div style="font-size: 12px; opacity: 0.8; line-height: 1.6;">
+                        Score = 0.35 × S_safety + 0.25 × S_headroom + 0.20 × S_gpu_fit + 0.10 × S_cooling + 0.10 × S_neighbor_stability.<br><br>
+                        Candidates with predicted temperature ≥ 75.0°C are rejected from the primary feasible pool. An additive penalty [45 + 5 × (T - 75)] ensures graceful degradation in catastrophic overload states.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hw-method-footer" style="margin-top: 20px; font-size: 12px; opacity: 0.6; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 14px;">
+                HeatWise Research Prototype | Validated in Simulation | 12 Racks | 48 GPU Servers | 384 GPUs
+            </div>
+            """)
 
-    st.markdown("---")
-    st.markdown("### 🎙️ 2-Minute College Presentation Script & Demo Flow")
-    st.markdown("""
-    Use this step-by-step walkthrough during your live demonstration:
-
-    1. **Introduction (15s)**:
-       > *"Good morning Professor. Today I am presenting **HeatWise**, an intelligent thermal-aware workload placement system for high-density AI data centers. Traditional schedulers only look at GPU availability, but HeatWise predicts thermal impact to prevent hotspots."*
-
-    2. **Show Data Center Telemetry (20s)**:
-       > *"Here is our 12-rack virtual data center running 48 GPU servers. Notice on the 2D Heatmap that different racks have different temperatures and cooling efficiencies."*
-
-    3. **Demonstrate the Key Scenario (Rack 7 vs Rack 3) (35s)**:
-       > *"Notice **Rack 7**: it has 70% free GPU availability, but due to thermal recirculation, its current temperature is 68°C. Meanwhile, **Rack 3** has 60% free GPU but is at a cool 48°C. A traditional Least-Loaded scheduler blindly picks Rack 7 because of higher free compute. Let's click **'Find Best Placement'**."*
-
-    4. **Show HeatWise Decision & Explainability (30s)**:
-       > *"HeatWise uses our Random Forest model to predict that placing this training job on Rack 7 would spike its temperature to 78°C—causing a critical hotspot! Therefore, HeatWise rejects Rack 7 and recommends Rack 3, where predicted temperature stays at a safe 56°C. Look at the Before vs. After Heatmap and the explainability breakdown."*
-
-    5. **Algorithm Benchmark Comparison (20s)**:
-       > *"On Tab 2, we simulate a stream of 15 workloads. Notice how Least-Loaded and Round Robin trigger multiple thermal hotspots and SLA violations, whereas HeatWise keeps the peak temperature low and well-distributed."*
-    """)

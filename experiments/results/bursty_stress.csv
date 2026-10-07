@@ -1,0 +1,4 @@
+experiment,scheduler,total_workloads,placement_failures,fallback_invocations,peak_temp,avg_temp,temp_std,hotspots,sla_violations,avg_headroom,total_power_kw,total_energy_kwh
+Bursty Stress,Round Robin,29,5,0,90.4,67.9,12.71,4,7,9.8,103.38,749.5
+Bursty Stress,Least Loaded,29,0,0,92.0,67.1,11.83,3,6,10.5,103.38,749.5
+Bursty Stress,HeatWise,29,1,1,84.1,66.9,9.35,3,5,9.3,103.38,749.5

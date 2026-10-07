@@ -1,0 +1,11 @@
+model,eval_seed,decisions,dynamic_mae,top1_agreement_pct,top3_overlap_pct,spearman_rho,optimality_gap,unsafe_placements,hw_infeasible,materially_worse_pct,eval_time_s
+10k_episode_grouped,101,250,1.947,81.2,100.0,0.59,0.372,0,0,7.6,7.71
+10k_episode_grouped,202,250,1.943,79.6,100.0,0.555,0.436,0,0,8.4,7.68
+10k_episode_grouped,303,250,1.925,82.8,100.0,0.601,0.304,0,0,6.8,8.28
+10k_episode_grouped,404,250,1.934,78.4,100.0,0.611,0.415,0,0,9.6,8.4
+10k_episode_grouped,505,250,1.907,84.0,100.0,0.549,0.314,0,0,6.4,8.48
+20k_episode_grouped,101,250,1.91,80.4,100.0,0.567,0.508,0,0,9.2,8.68
+20k_episode_grouped,202,250,1.89,80.4,100.0,0.536,0.473,0,0,9.6,9.25
+20k_episode_grouped,303,250,1.914,79.6,100.0,0.584,0.493,0,0,10.0,9.46
+20k_episode_grouped,404,250,1.893,78.0,100.0,0.579,0.523,0,0,11.2,13.38
+20k_episode_grouped,505,250,1.889,82.8,100.0,0.507,0.454,0,0,8.0,11.1

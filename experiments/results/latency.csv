@@ -1,0 +1,8 @@
+operation,mean_ms,median_ms,p95_ms,p99_ms,std_ms,iterations
+standard_rf_single_rack_ms,15.489,15.418,16.74,16.865,1.36,300
+standard_rf_12_rack_batch_ms,15.628,16.515,16.73,16.964,1.296,300
+tree_variance_single_rack_ms,4.365,4.362,4.389,4.422,0.023,300
+tree_variance_12_racks_ms,4.367,4.355,4.388,4.822,0.071,300
+candidate_scoring_12_racks_ms,0.125,0.124,0.127,0.134,0.004,300
+full_placement_decision_e2e_ms,194.628,195.51,201.305,203.0,5.053,300
+dataset_generation_120_samples_ms,9.756,9.743,9.857,10.144,0.124,20

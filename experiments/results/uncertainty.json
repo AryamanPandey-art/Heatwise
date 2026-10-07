@@ -1,0 +1,72 @@
+[
+  {
+    "k_multiplier": 0.0,
+    "interpretation": "Standard Point Prediction",
+    "unsafe_placements": 0,
+    "threshold_edge_decisions": 350,
+    "rejected_by_conservative_bound": 0,
+    "dynamic_mae": 2.624,
+    "optimality_gap": 3.58,
+    "top1_agreement_pct": 40.0,
+    "top3_overlap_pct": 100.0,
+    "materially_worse_rate_pct": 60.0,
+    "standard_predict_ms": 13.839,
+    "uncertainty_predict_ms": 4.414
+  },
+  {
+    "k_multiplier": 1.0,
+    "interpretation": "Mean + 1.0*Sigma Bound",
+    "unsafe_placements": 0,
+    "threshold_edge_decisions": 350,
+    "rejected_by_conservative_bound": 200,
+    "dynamic_mae": 2.624,
+    "optimality_gap": 2.0,
+    "top1_agreement_pct": 60.0,
+    "top3_overlap_pct": 100.0,
+    "materially_worse_rate_pct": 40.0,
+    "standard_predict_ms": 13.839,
+    "uncertainty_predict_ms": 4.414
+  },
+  {
+    "k_multiplier": 1.28,
+    "interpretation": "Mean + 1.28*Sigma Bound",
+    "unsafe_placements": 0,
+    "threshold_edge_decisions": 350,
+    "rejected_by_conservative_bound": 250,
+    "dynamic_mae": 2.624,
+    "optimality_gap": 2.0,
+    "top1_agreement_pct": 60.0,
+    "top3_overlap_pct": 100.0,
+    "materially_worse_rate_pct": 40.0,
+    "standard_predict_ms": 13.839,
+    "uncertainty_predict_ms": 4.414
+  },
+  {
+    "k_multiplier": 1.64,
+    "interpretation": "Mean + 1.64*Sigma Bound",
+    "unsafe_placements": 0,
+    "threshold_edge_decisions": 350,
+    "rejected_by_conservative_bound": 500,
+    "dynamic_mae": 2.624,
+    "optimality_gap": 2.0,
+    "top1_agreement_pct": 60.0,
+    "top3_overlap_pct": 100.0,
+    "materially_worse_rate_pct": 40.0,
+    "standard_predict_ms": 13.839,
+    "uncertainty_predict_ms": 4.414
+  },
+  {
+    "k_multiplier": 2.0,
+    "interpretation": "Mean + 2.0*Sigma Bound",
+    "unsafe_placements": 0,
+    "threshold_edge_decisions": 350,
+    "rejected_by_conservative_bound": 700,
+    "dynamic_mae": 2.624,
+    "optimality_gap": 2.0,
+    "top1_agreement_pct": 60.0,
+    "top3_overlap_pct": 100.0,
+    "materially_worse_rate_pct": 40.0,
+    "standard_predict_ms": 13.839,
+    "uncertainty_predict_ms": 4.414
+  }
+]

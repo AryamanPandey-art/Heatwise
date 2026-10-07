@@ -9,25 +9,12 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple, Any
 
-# Data center topology: 3 rows x 4 columns = 12 racks
-GRID_ROWS = 3
-GRID_COLS = 4
-TOTAL_RACKS = 12
-SERVERS_PER_RACK = 4
-GPUS_PER_SERVER = 8  # 8x GPUs (e.g., NVIDIA H100/A100 equivalent) = 32 GPUs per rack
-
-# Thermal safety thresholds (°C)
-TEMP_NORMAL_MAX = 60.0
-TEMP_WARM_MAX = 68.0
-TEMP_HIGH_MAX = 74.9
-TEMP_CRITICAL = 75.0  # Threshold for thermal hotspot / SLA warning
-TEMP_MAX_SAFE = 80.0  # Critical hardware throttle limit
-
-# Physical constants for simulation
-AMBIENT_TEMP = 22.0  # °C intake air baseline
-SERVER_IDLE_POWER_W = 400.0  # Idle server power
-SERVER_MAX_CPU_POWER_W = 350.0
-SERVER_MAX_GPU_POWER_W = 2400.0  # Power scaled by GPU utilization
+from config import (
+    GRID_ROWS, GRID_COLS, TOTAL_RACKS, SERVERS_PER_RACK, GPUS_PER_SERVER,
+    TEMP_NORMAL_MAX, TEMP_WARM_MAX, TEMP_HIGH_MAX, TEMP_CRITICAL, TEMP_MAX_SAFE,
+    AMBIENT_TEMP, SERVER_IDLE_POWER_W, SERVER_MAX_CPU_POWER_W, SERVER_MAX_GPU_POWER_W,
+    SIMULATION_RANDOM_SEED, TELEMETRY_RANDOM_SEED, SERVER_MAX_MEMORY_GB
+)
 
 # Rack coordinate mapping: rack_id (1-12) -> (row, col)
 RACK_COORDS = {
@@ -61,16 +48,18 @@ def compute_equilibrium_temperature(
     cooling_capacity_pct: float,
     neighbor_avg_temp: float,
     recirculation_factor: float = 1.0
-) -> float:
+) -> Tuple[float, float, float]:
     """
-    Computes thermodynamic equilibrium temperature (°C) for a rack based on:
-    - Total power dissipation (kW)
-    - CRAC cooling effectiveness (0-100%)
-    - Adjacent rack heat recirculation
-    - Local hot-aisle recirculation factor
+    Computes thermodynamic equilibrium temperature (°C) for a rack.
+    Returns: (inlet_temp, outlet_temp, equilibrium_temp)
     """
     power_kw = total_power_w / 1000.0
     
+    # Inlet temp is influenced by ambient and neighbor recirculation
+    neighbor_diff = max(0.0, neighbor_avg_temp - AMBIENT_TEMP)
+    neighbor_influence = 0.14 * neighbor_diff
+    inlet_temp = AMBIENT_TEMP + neighbor_influence
+
     # Power temperature rise: ~3.8°C per kW of heat generated
     raw_heat_rise = power_kw * 3.85 * recirculation_factor
     
@@ -78,12 +67,14 @@ def compute_equilibrium_temperature(
     cooling_factor = max(0.20, (cooling_capacity_pct / 100.0))
     effective_heat_rise = raw_heat_rise / (cooling_factor ** 0.85)
     
-    # Neighbor thermal coupling: ~15% heat transfer from adjacent racks
-    neighbor_diff = max(0.0, neighbor_avg_temp - AMBIENT_TEMP)
-    neighbor_influence = 0.14 * neighbor_diff
+    outlet_temp = inlet_temp + raw_heat_rise
+    final_temp = inlet_temp + effective_heat_rise
     
-    final_temp = AMBIENT_TEMP + effective_heat_rise + neighbor_influence
-    return round(float(np.clip(final_temp, 28.0, 92.0)), 1)
+    return (
+        round(float(np.clip(inlet_temp, 18.0, 50.0)), 1),
+        round(float(np.clip(outlet_temp, 25.0, 100.0)), 1),
+        round(float(np.clip(final_temp, 28.0, 92.0)), 1)
+    )
 
 
 def get_thermal_status(temp: float) -> Tuple[str, str, str]:
@@ -112,33 +103,33 @@ class DataCenterSimulation:
         self.racks = {}
 
         # Default baseline seed values for 12 racks
-        np.random.seed(42)
+        np.random.seed(SIMULATION_RANDOM_SEED)
 
-        # Baseline profiles (CPU %, GPU %, Cooling %, Recirculation Factor)
+        # Baseline profiles (CPU %, GPU %, Memory %, Cooling %, Recirculation Factor)
         base_configs = {
-            1:  {"cpu": 45, "gpu": 50, "cooling": 92, "recirc": 1.00, "workload": "BERT Embeddings"},
-            2:  {"cpu": 55, "gpu": 60, "cooling": 90, "recirc": 1.02, "workload": "ResNet Vision"},
-            3:  {"cpu": 35, "gpu": 40, "cooling": 96, "recirc": 0.95, "workload": "Light Inference"},
-            4:  {"cpu": 60, "gpu": 65, "cooling": 88, "recirc": 1.00, "workload": "Audio Transcription"},
-            5:  {"cpu": 50, "gpu": 55, "cooling": 90, "recirc": 1.05, "workload": "Recommendation Sys"},
-            6:  {"cpu": 65, "gpu": 70, "cooling": 85, "recirc": 1.08, "workload": "Diffusion Model"},
-            7:  {"cpu": 25, "gpu": 30, "cooling": 88, "recirc": 1.00, "workload": "Idle / Standby"},
-            8:  {"cpu": 50, "gpu": 58, "cooling": 90, "recirc": 1.00, "workload": "NLP Tokenizer"},
-            9:  {"cpu": 40, "gpu": 45, "cooling": 94, "recirc": 0.96, "workload": "Vector Search"},
-            10: {"cpu": 60, "gpu": 68, "cooling": 86, "recirc": 1.02, "workload": "RL Agent Training"},
-            11: {"cpu": 45, "gpu": 52, "cooling": 92, "recirc": 0.98, "workload": "Graph Neural Net"},
-            12: {"cpu": 55, "gpu": 62, "cooling": 88, "recirc": 1.00, "workload": "Video Analytics"},
+            1:  {"cpu": 45, "gpu": 50, "mem": 60, "cooling": 92, "recirc": 1.00, "workload": "BERT Embeddings"},
+            2:  {"cpu": 55, "gpu": 60, "mem": 65, "cooling": 90, "recirc": 1.02, "workload": "ResNet Vision"},
+            3:  {"cpu": 35, "gpu": 40, "mem": 45, "cooling": 96, "recirc": 0.95, "workload": "Light Inference"},
+            4:  {"cpu": 60, "gpu": 65, "mem": 70, "cooling": 88, "recirc": 1.00, "workload": "Audio Transcription"},
+            5:  {"cpu": 50, "gpu": 55, "mem": 60, "cooling": 90, "recirc": 1.05, "workload": "Recommendation Sys"},
+            6:  {"cpu": 65, "gpu": 70, "mem": 75, "cooling": 85, "recirc": 1.08, "workload": "Diffusion Model"},
+            7:  {"cpu": 25, "gpu": 30, "mem": 35, "cooling": 88, "recirc": 1.00, "workload": "Idle / Standby"},
+            8:  {"cpu": 50, "gpu": 58, "mem": 65, "cooling": 90, "recirc": 1.00, "workload": "NLP Tokenizer"},
+            9:  {"cpu": 40, "gpu": 45, "mem": 50, "cooling": 94, "recirc": 0.96, "workload": "Vector Search"},
+            10: {"cpu": 60, "gpu": 68, "mem": 75, "cooling": 86, "recirc": 1.02, "workload": "RL Agent Training"},
+            11: {"cpu": 45, "gpu": 52, "mem": 60, "cooling": 92, "recirc": 0.98, "workload": "Graph Neural Net"},
+            12: {"cpu": 55, "gpu": 62, "mem": 70, "cooling": 88, "recirc": 1.00, "workload": "Video Analytics"},
         }
 
         if scenario_name == "Thermal Hotspot":
             # Scenario: Rack 7 has high GPU availability (70% free, 30% util)
             # but due to hot-aisle air trap & degraded localized cooling, it is already thermally stressed (68.2°C).
             # Rack 3 has 60% free GPU (40% util) with 96% cooling capacity and safe 48.1°C temp.
-            base_configs[7] = {"cpu": 25, "gpu": 30, "cooling": 64, "recirc": 1.38, "workload": "Batch Worker"}
-            base_configs[6] = {"cpu": 75, "gpu": 82, "cooling": 80, "recirc": 1.15, "workload": "LLM Fine-tuning"}
-            base_configs[8] = {"cpu": 70, "gpu": 78, "cooling": 82, "recirc": 1.12, "workload": "Dense Retrieval"}
-            base_configs[3] = {"cpu": 35, "gpu": 40, "cooling": 96, "recirc": 0.92, "workload": "API Gateway"}
-            base_configs[2] = {"cpu": 40, "gpu": 45, "cooling": 94, "recirc": 0.95, "workload": "Inference Cache"}
+            base_configs[7] = {"cpu": 25, "gpu": 30, "mem": 35, "cooling": 64, "recirc": 1.38, "workload": "Batch Worker"}
+            base_configs[6] = {"cpu": 75, "gpu": 82, "mem": 85, "cooling": 80, "recirc": 1.15, "workload": "LLM Fine-tuning"}
+            base_configs[8] = {"cpu": 70, "gpu": 78, "mem": 80, "cooling": 82, "recirc": 1.12, "workload": "Dense Retrieval"}
+            base_configs[3] = {"cpu": 35, "gpu": 40, "mem": 45, "cooling": 96, "recirc": 0.92, "workload": "API Gateway"}
+            base_configs[2] = {"cpu": 40, "gpu": 45, "mem": 50, "cooling": 94, "recirc": 0.95, "workload": "Inference Cache"}
 
         elif scenario_name == "Normal Operation":
             # Well distributed moderate temperatures
@@ -173,13 +164,16 @@ class DataCenterSimulation:
                 # Small per-server variance (+- 4%)
                 s_cpu = float(np.clip(cfg["cpu"] + np.random.uniform(-4, 4), 10, 98))
                 s_gpu = float(np.clip(cfg["gpu"] + np.random.uniform(-5, 5), 10, 98))
+                s_mem = float(np.clip(cfg.get("mem", 50) + np.random.uniform(-5, 5), 10, 98))
                 s_power = compute_server_power(s_cpu, s_gpu)
                 servers.append({
                     "server_id": f"R{r_id}-S{s_idx}",
                     "server_num": s_idx,
                     "cpu_util": round(s_cpu, 1),
                     "gpu_util": round(s_gpu, 1),
+                    "mem_util": round(s_mem, 1),
                     "gpu_count": GPUS_PER_SERVER,
+                    "mem_capacity_gb": SERVER_MAX_MEMORY_GB,
                     "power_w": s_power,
                     "active_workload": cfg["workload"]
                 })
@@ -187,6 +181,8 @@ class DataCenterSimulation:
             total_rack_power = sum(s["power_w"] for s in servers)
             avg_cpu = float(np.mean([s["cpu_util"] for s in servers]))
             avg_gpu = float(np.mean([s["gpu_util"] for s in servers]))
+            avg_mem = float(np.mean([s["mem_util"] for s in servers]))
+            total_mem_capacity = SERVERS_PER_RACK * SERVER_MAX_MEMORY_GB
             
             self.racks[r_id] = {
                 "rack_id": r_id,
@@ -196,12 +192,19 @@ class DataCenterSimulation:
                 "total_power_w": round(total_rack_power, 1),
                 "avg_cpu_util": round(avg_cpu, 1),
                 "avg_gpu_util": round(avg_gpu, 1),
+                "avg_mem_util": round(avg_mem, 1),
                 "gpu_available_pct": round(100.0 - avg_gpu, 1),
                 "gpu_available_count": int(round((100.0 - avg_gpu) / 100.0 * (SERVERS_PER_RACK * GPUS_PER_SERVER))),
+                "mem_available_pct": round(100.0 - avg_mem, 1),
+                "mem_available_gb": round((100.0 - avg_mem) / 100.0 * total_mem_capacity, 1),
+                "mem_capacity_gb": total_mem_capacity,
                 "cooling_capacity_pct": cfg["cooling"],
                 "recirculation_factor": cfg["recirc"],
                 "primary_workload": cfg["workload"],
-                "temperature": 45.0  # Placeholder, computed next
+                "temperature": 45.0,  # Placeholder, computed next
+                "inlet_temp": 22.0,
+                "outlet_temp": 50.0,
+                "active_workloads": []  # List of dicts with workload info and remaining duration
             }
             temp_estimates[r_id] = 45.0
 
@@ -210,13 +213,15 @@ class DataCenterSimulation:
             for r_id in range(1, TOTAL_RACKS + 1):
                 nbr_ids = get_neighbor_rack_ids(r_id)
                 nbr_avg = float(np.mean([temp_estimates[nid] for nid in nbr_ids]))
-                t_eq = compute_equilibrium_temperature(
+                inlet, outlet, t_eq = compute_equilibrium_temperature(
                     self.racks[r_id]["total_power_w"],
                     self.racks[r_id]["cooling_capacity_pct"],
                     nbr_avg,
                     self.racks[r_id]["recirculation_factor"]
                 )
                 temp_estimates[r_id] = t_eq
+                self.racks[r_id]["inlet_temp"] = inlet
+                self.racks[r_id]["outlet_temp"] = outlet
 
         # Finalize rack properties
         for r_id in range(1, TOTAL_RACKS + 1):
@@ -245,12 +250,16 @@ class DataCenterSimulation:
                 "Row": r["row"] + 1,
                 "Col": r["col"] + 1,
                 "Temperature (°C)": r["temperature"],
+                "Inlet Temp (°C)": r["inlet_temp"],
+                "Outlet Temp (°C)": r["outlet_temp"],
                 "Status": r["status"],
                 "Thermal Headroom (°C)": r["thermal_headroom"],
                 "GPU Available (%)": r["gpu_available_pct"],
                 "GPU Count Free": r["gpu_available_count"],
+                "Mem Available (%)": r["mem_available_pct"],
                 "Avg GPU Util (%)": r["avg_gpu_util"],
                 "Avg CPU Util (%)": r["avg_cpu_util"],
+                "Avg Mem Util (%)": r["avg_mem_util"],
                 "Total Power (kW)": round(r["total_power_w"] / 1000.0, 2),
                 "Cooling Capacity (%)": r["cooling_capacity_pct"],
                 "Neighbor Avg Temp (°C)": r["neighbor_avg_temp"],
@@ -265,22 +274,30 @@ class DataCenterSimulation:
         gpu_utils = [r["avg_gpu_util"] for r in self.racks.values()]
         hotspots = sum(1 for t in temps if t >= TEMP_CRITICAL)
         warm_count = sum(1 for t in temps if TEMP_WARM_MAX <= t < TEMP_CRITICAL)
+        headrooms = [r["thermal_headroom"] for r in self.racks.values()]
+        active_workloads = sum(len(r.get("active_workloads", [])) for r in self.racks.values())
+        if active_workloads == 0:
+            active_workloads = sum(1 for r in self.racks.values() if r["avg_gpu_util"] > 10) * SERVERS_PER_RACK
 
         return {
             "total_racks": TOTAL_RACKS,
             "total_servers": TOTAL_RACKS * SERVERS_PER_RACK,
             "total_gpus": TOTAL_RACKS * SERVERS_PER_RACK * GPUS_PER_SERVER,
+            "active_workloads": active_workloads,
             "avg_temp": round(float(np.mean(temps)), 1),
             "max_temp": round(float(np.max(temps)), 1),
             "min_temp": round(float(np.min(temps)), 1),
             "total_power_kw": round(float(np.sum(powers)) / 1000.0, 2),
             "avg_gpu_util": round(float(np.mean(gpu_utils)), 1),
             "hotspot_count": hotspots,
+            "thermal_violations": hotspots,
             "warm_count": warm_count,
-            "healthy_racks": TOTAL_RACKS - hotspots - warm_count
+            "healthy_racks": TOTAL_RACKS - hotspots - warm_count,
+            "avg_thermal_headroom": round(float(np.mean(headrooms)), 1),
+            "placement_failures": getattr(self, 'placement_failures', 0)
         }
 
-    def simulate_placement(self, rack_id: int, workload_gpu_pct: float, workload_power_w: float) -> Dict[str, Any]:
+    def simulate_placement(self, rack_id: int, workload_gpu_pct: float, workload_mem_pct: float, workload_power_w: float) -> Dict[str, Any]:
         """
         Simulates the physical outcome of placing a workload on a given rack.
         Returns the new state without modifying the persistent simulation.
@@ -288,9 +305,10 @@ class DataCenterSimulation:
         curr = self.racks[rack_id]
         new_power_w = curr["total_power_w"] + workload_power_w
         new_gpu_util = min(100.0, curr["avg_gpu_util"] + (workload_gpu_pct / SERVERS_PER_RACK))
+        new_mem_util = min(100.0, curr["avg_mem_util"] + (workload_mem_pct / SERVERS_PER_RACK))
         
         # New temperature under modified power
-        new_temp = compute_equilibrium_temperature(
+        inlet, outlet, new_temp = compute_equilibrium_temperature(
             new_power_w,
             curr["cooling_capacity_pct"],
             curr["neighbor_avg_temp"],
@@ -303,6 +321,8 @@ class DataCenterSimulation:
             "rack_id": rack_id,
             "prev_temp": curr["temperature"],
             "new_temp": new_temp,
+            "new_inlet_temp": inlet,
+            "new_outlet_temp": outlet,
             "temp_delta": round(new_temp - curr["temperature"], 1),
             "prev_power_w": curr["total_power_w"],
             "new_power_w": round(new_power_w, 1),
@@ -310,69 +330,136 @@ class DataCenterSimulation:
             "new_status": status,
             "new_status_color": color,
             "new_gpu_util": round(new_gpu_util, 1),
+            "new_mem_util": round(new_mem_util, 1),
             "is_hotspot": new_temp >= TEMP_CRITICAL,
             "sla_violation": new_temp >= TEMP_CRITICAL
         }
+
+    def advance_time(self, steps: int = 1):
+        """Advances simulation time, decrements workload duration, and releases resources."""
+        for _ in range(steps):
+            for r_id, rack in self.racks.items():
+                active_workloads = rack.get("active_workloads", [])
+                still_active = []
+                for wl in active_workloads:
+                    wl["duration_remaining"] -= 1
+                    if wl["duration_remaining"] > 0:
+                        still_active.append(wl)
+                    else:
+                        # Release resources
+                        rack["total_power_w"] = max(400.0 * SERVERS_PER_RACK, rack["total_power_w"] - wl["power_w"])
+                        rack["avg_gpu_util"] = max(0.0, rack["avg_gpu_util"] - (wl["gpu_pct"] / SERVERS_PER_RACK))
+                        rack["avg_mem_util"] = max(0.0, rack["avg_mem_util"] - (wl["mem_pct"] / SERVERS_PER_RACK))
+                
+                rack["active_workloads"] = still_active
+                rack["gpu_available_pct"] = round(100.0 - rack["avg_gpu_util"], 1)
+                rack["mem_available_pct"] = round(100.0 - rack["avg_mem_util"], 1)
+                
+        # Recompute temperatures after resources might have been released
+        for r_id, rack in self.racks.items():
+            inlet, outlet, t_eq = compute_equilibrium_temperature(
+                rack["total_power_w"],
+                rack["cooling_capacity_pct"],
+                rack["neighbor_avg_temp"],
+                rack["recirculation_factor"]
+            )
+            rack["temperature"] = t_eq
+            rack["inlet_temp"] = inlet
+            rack["outlet_temp"] = outlet
+            rack["thermal_headroom"] = max(0.0, TEMP_CRITICAL - t_eq)
+            status, color, badge = get_thermal_status(t_eq)
+            rack["status"] = status
+            rack["status_color"] = color
+            rack["badge_class"] = badge
 
 
 def generate_synthetic_training_data(n_samples: int = 3500) -> pd.DataFrame:
     """
     Generates realistic, physics-grounded synthetic telemetry for ML model training.
-    Computes physically consistent current and post-placement temperatures.
+    Uses dynamic trajectory generation to cover the true operational state space.
     """
-    np.random.seed(1337)
+    np.random.seed(TELEMETRY_RANDOM_SEED)
+    samples = []
+    scenarios = ["Normal Operation", "GPU Surge", "Cooling Degradation", "Thermal Hotspot", "High AI Workload"]
     
-    # Generate realistic base parameters
-    cpu_util = np.random.uniform(15.0, 90.0, n_samples)
-    gpu_util = np.random.uniform(10.0, 95.0, n_samples)
-    cooling_cap = np.random.uniform(45.0, 98.0, n_samples)
-    recirc_factors = np.random.uniform(0.92, 1.35, n_samples)
-    
-    # Base power derived from CPU/GPU
-    base_power = 4 * (400.0 + (cpu_util/100.0)*350.0 + (gpu_util/100.0)*2400.0)
-    base_power += np.random.normal(0, 80.0, n_samples)
-    base_power = np.clip(base_power, 2000.0, 12500.0)
-    
-    # Neighbor temperature baseline
-    neighbor_temp = 22.0 + (base_power / 1000.0) * 3.5 / ((cooling_cap / 100.0) ** 0.85)
-    neighbor_temp += np.random.normal(0, 2.5, n_samples)
-    neighbor_temp = np.clip(neighbor_temp, 30.0, 78.0)
-
-    # Current equilibrium temperature based on base power and cooling
-    current_temp = []
-    for p, c, n_temp, r_fac in zip(base_power, cooling_cap, neighbor_temp, recirc_factors):
-        t_curr = compute_equilibrium_temperature(p, c, n_temp, r_fac)
-        t_curr += np.random.normal(0, 0.20)
-        current_temp.append(round(float(t_curr), 2))
-    current_temp = np.array(current_temp)
-
-    # Workload parameters
-    workload_gpu_demand = np.random.choice([10.0, 20.0, 35.0, 50.0, 70.0, 90.0], n_samples)
-    workload_intensity_val = np.random.choice([1, 2, 3, 4], n_samples)  # 1: Low, 2: Med, 3: High, 4: Very High
-    workload_power_est = workload_gpu_demand * 25.0 * (0.8 + 0.15 * workload_intensity_val)
-    workload_power_est += np.random.normal(0, 40.0, n_samples)
-    workload_power_est = np.clip(workload_power_est, 150.0, 3200.0)
-    
-    # Target: Equilibrium temperature after placement
-    new_total_power = base_power + workload_power_est
-    
-    target_post_temp = []
-    for p, c, n_temp, r_fac in zip(new_total_power, cooling_cap, neighbor_temp, recirc_factors):
-        t_post = compute_equilibrium_temperature(p, c, n_temp, r_fac)
-        t_post += np.random.normal(0, 0.25)
-        target_post_temp.append(round(float(t_post), 2))
+    while len(samples) < n_samples:
+        scenario = np.random.choice(scenarios)
+        sim = DataCenterSimulation(scenario=scenario)
         
-    df = pd.DataFrame({
-        "current_temp": np.round(current_temp, 2),
-        "cpu_utilization": np.round(cpu_util, 1),
-        "gpu_utilization": np.round(gpu_util, 1),
-        "power_watts": np.round(base_power, 1),
-        "cooling_capacity": np.round(cooling_cap, 1),
-        "neighbor_avg_temp": np.round(neighbor_temp, 2),
-        "workload_gpu_demand": np.round(workload_gpu_demand, 1),
-        "workload_intensity_val": workload_intensity_val,
-        "workload_power_est": np.round(workload_power_est, 1),
-        "post_workload_temp": target_post_temp
-    })
-    
-    return df
+        # Run a trajectory of workloads
+        for _ in range(60):
+            if len(samples) >= n_samples:
+                break
+                
+            wl_types = ["AI Training", "AI Inference", "LLM Inference", "Image Processing"]
+            wl_type = np.random.choice(wl_types, p=[0.35, 0.30, 0.25, 0.10])
+            w_int = np.random.choice([1, 2, 3, 4], p=[0.20, 0.40, 0.30, 0.10])
+            
+            mult = 1.0 + (w_int - 1) * 0.25
+            base_g, base_m, base_p = 50.0, 50.0, 1000
+            if wl_type == "AI Training":
+                base_g, base_m, base_p = 80.0, 70.0, 2000
+            elif wl_type == "LLM Inference":
+                base_g, base_m, base_p = 60.0, 85.0, 1500
+            elif wl_type == "AI Inference":
+                base_g, base_m, base_p = 40.0, 40.0, 800
+            elif wl_type == "Image Processing":
+                base_g, base_m, base_p = 20.0, 30.0, 400
+                
+            gpu_pct = round(base_g * mult, 1)
+            mem_pct = round(base_m * mult, 1)
+            power_w = round(base_p * mult, 1)
+            
+            for r_id in range(1, 13):
+                rack = sim.racks[r_id]
+                
+                feat = {
+                    "cpu_utilization": rack["avg_cpu_util"],
+                    "gpu_utilization": rack["avg_gpu_util"],
+                    "memory_utilization": rack.get("avg_mem_util", 50.0),
+                    "inlet_temperature": rack.get("inlet_temp", 22.0),
+                    "local_power_kw": rack["total_power_w"] / 1000.0,
+                    "neighbor_temperature": rack["neighbor_avg_temp"],
+                    "neighbor_utilization": rack.get("neighbor_utilization", 50.0),
+                    "cooling_capacity": rack["cooling_capacity_pct"],
+                    "recirculation_factor": rack["recirculation_factor"],
+                    
+                    "workload_AI_Training": 1 if wl_type == "AI Training" else 0,
+                    "workload_AI_Inference": 1 if wl_type == "AI Inference" else 0,
+                    "workload_LLM": 1 if wl_type == "LLM Inference" else 0,
+                    "workload_Image_Processing": 1 if wl_type == "Image Processing" else 0,
+                    
+                    "workload_intensity_val": w_int,
+                    "workload_gpu_demand": gpu_pct,
+                    "workload_mem_demand": mem_pct,
+                    "workload_power_est": power_w
+                }
+                
+                sim_res = sim.simulate_placement(r_id, gpu_pct, mem_pct, power_w)
+                feat["post_workload_temp"] = sim_res["new_temp"]
+                
+                samples.append(feat)
+                if len(samples) >= n_samples:
+                    break
+                    
+            # Neutral / Randomized placement (relax constraint to explore extreme heat)
+            valid_racks = list(range(1, 13))
+            if valid_racks:
+                winner = np.random.choice(valid_racks)
+                sim.racks[winner]["total_power_w"] += power_w
+                sim.racks[winner]["avg_gpu_util"] = min(100.0, sim.racks[winner]["avg_gpu_util"] + gpu_pct/SERVERS_PER_RACK)
+                sim.racks[winner]["avg_mem_util"] = min(100.0, sim.racks[winner]["avg_mem_util"] + mem_pct/SERVERS_PER_RACK)
+                sim.racks[winner]["gpu_available_pct"] = max(0.0, sim.racks[winner]["gpu_available_pct"] - gpu_pct/SERVERS_PER_RACK)
+                sim.racks[winner]["mem_available_pct"] = max(0.0, sim.racks[winner]["mem_available_pct"] - mem_pct/SERVERS_PER_RACK)
+                
+                for _ in range(4):
+                    temp_ests = {rid: r["temperature"] for rid, r in sim.racks.items()}
+                    for rid in range(1, 13):
+                        r = sim.racks[rid]
+                        nbr = [temp_ests[nid] for nid in r["neighbor_ids"]]
+                        inlet, outlet, t_eq = compute_equilibrium_temperature(r["total_power_w"], r["cooling_capacity_pct"], np.mean(nbr), r["recirculation_factor"])
+                        sim.racks[rid]["temperature"] = t_eq
+                        sim.racks[rid]["inlet_temp"] = inlet
+                        sim.racks[rid]["neighbor_avg_temp"] = np.mean(nbr)
+                        
+    return pd.DataFrame(samples)

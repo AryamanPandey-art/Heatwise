@@ -1,0 +1,27 @@
+# Bytecode and Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+
+# Diagnostic and scratch scripts
+diagnostic_v*.py
+test_backend.py
+
+# Headless browser QA & automation scripts
+capture_*.mjs
+qa_transitions.mjs
+run_qa.mjs
+take_screenshot.mjs
+verify_visual_pass.mjs
+
+# Root QA screenshots (preserves subdirectories like assets/ and paper/figures/)
+/*.png
+
+# Paper temporary visual QA renders (preserves paper/figures/ publication assets)
+paper/rendered_pages/
+paper/*.png

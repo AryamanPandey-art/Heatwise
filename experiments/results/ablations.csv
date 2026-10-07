@@ -1,0 +1,8 @@
+variant_id,ablation_type,feature_count,heuristic_type,fit_time_s,static_mae,static_rmse,static_r2,dynamic_mae,top1_agreement_pct,top3_overlap_pct,spearman_rho,optimality_gap,materially_worse_rate_pct,unsafe_placements
+G1_Full_17_Features,Feature Ablation,17,Current HeatWise Multi-Factor,0.199,0.311,0.563,0.9976,2.624,40.0,100.0,0.457,3.58,60.0,0
+G2_No_Neighbor_Temp,Feature Ablation,16,Current HeatWise Multi-Factor,0.168,0.307,0.539,0.9978,3.004,60.0,100.0,0.548,2.0,40.0,0
+G3_No_Cooling_Capacity,Feature Ablation,16,Current HeatWise Multi-Factor,0.186,0.328,0.565,0.9976,2.832,60.0,100.0,0.436,2.0,40.0,0
+G4_No_Recirculation,Feature Ablation,16,Current HeatWise Multi-Factor,0.191,0.353,0.639,0.9969,2.702,60.0,100.0,0.6,2.0,40.0,0
+G5_No_Neighbor_Signals,Feature Ablation,15,Current HeatWise Multi-Factor,0.265,0.309,0.541,0.9978,2.884,60.0,100.0,0.48,2.0,40.0,0
+G6_Temp_Only_Heuristic,Heuristic Ablation,17,Pure Temperature Minimization (100% Temp),0.199,0.311,0.563,0.9976,2.624,60.0,100.0,0.54,2.0,40.0,0
+G7_Full_HeatWise_Heuristic,Heuristic Ablation,17,"Multi-Factor (Safety 35%, Headroom 25%, GPU 20%, Cool 10%, Nbr 10%)",0.199,0.311,0.563,0.9976,2.624,40.0,100.0,0.457,3.58,60.0,0

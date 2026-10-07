@@ -1,0 +1,79 @@
+{
+  "system_info": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "processor": "arm",
+    "machine": "arm64",
+    "python_version": "3.13.1",
+    "numpy_version": "2.5.0",
+    "pandas_version": "3.0.3",
+    "sklearn_version": "1.9.0",
+    "scipy_version": "1.18.1",
+    "total_racks": 12,
+    "n_trees": 120
+  },
+  "latency_summary": [
+    {
+      "operation": "standard_rf_single_rack_ms",
+      "mean_ms": 15.489,
+      "median_ms": 15.418,
+      "p95_ms": 16.74,
+      "p99_ms": 16.865,
+      "std_ms": 1.36,
+      "iterations": 300
+    },
+    {
+      "operation": "standard_rf_12_rack_batch_ms",
+      "mean_ms": 15.628,
+      "median_ms": 16.515,
+      "p95_ms": 16.73,
+      "p99_ms": 16.964,
+      "std_ms": 1.296,
+      "iterations": 300
+    },
+    {
+      "operation": "tree_variance_single_rack_ms",
+      "mean_ms": 4.365,
+      "median_ms": 4.362,
+      "p95_ms": 4.389,
+      "p99_ms": 4.422,
+      "std_ms": 0.023,
+      "iterations": 300
+    },
+    {
+      "operation": "tree_variance_12_racks_ms",
+      "mean_ms": 4.367,
+      "median_ms": 4.355,
+      "p95_ms": 4.388,
+      "p99_ms": 4.822,
+      "std_ms": 0.071,
+      "iterations": 300
+    },
+    {
+      "operation": "candidate_scoring_12_racks_ms",
+      "mean_ms": 0.125,
+      "median_ms": 0.124,
+      "p95_ms": 0.127,
+      "p99_ms": 0.134,
+      "std_ms": 0.004,
+      "iterations": 300
+    },
+    {
+      "operation": "full_placement_decision_e2e_ms",
+      "mean_ms": 194.628,
+      "median_ms": 195.51,
+      "p95_ms": 201.305,
+      "p99_ms": 203.0,
+      "std_ms": 5.053,
+      "iterations": 300
+    },
+    {
+      "operation": "dataset_generation_120_samples_ms",
+      "mean_ms": 9.756,
+      "median_ms": 9.743,
+      "p95_ms": 9.857,
+      "p99_ms": 10.144,
+      "std_ms": 0.124,
+      "iterations": 20
+    }
+  ]
+}

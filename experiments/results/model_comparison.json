@@ -1,0 +1,44 @@
+[
+  {
+    "model_name": "RandomForestRegressor (120 Trees)",
+    "train_time_s": 0.39,
+    "single_rack_inference_ms": 0.12,
+    "static_mae": 0.311,
+    "static_rmse": 0.563,
+    "static_r2": 0.9976,
+    "dynamic_mae": 2.624,
+    "top1_agreement_pct": 40.0,
+    "top3_overlap_pct": 100.0,
+    "spearman_rho": 0.457,
+    "optimality_gap": 3.58,
+    "materially_worse_rate_pct": 60.0
+  },
+  {
+    "model_name": "ExtraTreesRegressor (120 Trees)",
+    "train_time_s": 0.214,
+    "single_rack_inference_ms": 13.885,
+    "static_mae": 0.277,
+    "static_rmse": 0.46,
+    "static_r2": 0.9984,
+    "dynamic_mae": 3.484,
+    "top1_agreement_pct": 60.0,
+    "top3_overlap_pct": 100.0,
+    "spearman_rho": 0.333,
+    "optimality_gap": 2.0,
+    "materially_worse_rate_pct": 40.0
+  },
+  {
+    "model_name": "HistGradientBoostingRegressor",
+    "train_time_s": 1.097,
+    "single_rack_inference_ms": 4.528,
+    "static_mae": 0.278,
+    "static_rmse": 0.419,
+    "static_r2": 0.9987,
+    "dynamic_mae": 5.157,
+    "top1_agreement_pct": 40.0,
+    "top3_overlap_pct": 100.0,
+    "spearman_rho": 0.42,
+    "optimality_gap": 3.58,
+    "materially_worse_rate_pct": 60.0
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "experiment": "Sustained High-Load",
+    "scheduler": "Round Robin",
+    "timesteps": 60,
+    "placement_failures": 22,
+    "fallback_invocations": 0,
+    "peak_temp": 92.0,
+    "avg_temp": 76.7,
+    "temp_std": 12.16,
+    "hotspots": 5,
+    "sla_violations": 10,
+    "avg_headroom": 4.7,
+    "total_power_kw": 126.61,
+    "total_energy_kwh": 1899.2
+  },
+  {
+    "experiment": "Sustained High-Load",
+    "scheduler": "Least Loaded",
+    "timesteps": 60,
+    "placement_failures": 23,
+    "fallback_invocations": 0,
+    "peak_temp": 90.2,
+    "avg_temp": 77.9,
+    "temp_std": 6.7,
+    "hotspots": 7,
+    "sla_violations": 12,
+    "avg_headroom": 1.4,
+    "total_power_kw": 131.47,
+    "total_energy_kwh": 1972.1
+  },
+  {
+    "experiment": "Sustained High-Load",
+    "scheduler": "HeatWise",
+    "timesteps": 60,
+    "placement_failures": 24,
+    "fallback_invocations": 24,
+    "peak_temp": 90.2,
+    "avg_temp": 78.0,
+    "temp_std": 6.39,
+    "hotspots": 7,
+    "sla_violations": 12,
+    "avg_headroom": 1.3,
+    "total_power_kw": 132.01,
+    "total_energy_kwh": 1980.2
+  }
+]

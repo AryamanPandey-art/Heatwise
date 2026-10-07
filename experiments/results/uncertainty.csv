@@ -1,0 +1,6 @@
+k_multiplier,interpretation,unsafe_placements,threshold_edge_decisions,rejected_by_conservative_bound,dynamic_mae,optimality_gap,top1_agreement_pct,top3_overlap_pct,materially_worse_rate_pct,standard_predict_ms,uncertainty_predict_ms
+0.0,Standard Point Prediction,0,350,0,2.624,3.58,40.0,100.0,60.0,13.839,4.414
+1.0,Mean + 1.0*Sigma Bound,0,350,200,2.624,2.0,60.0,100.0,40.0,13.839,4.414
+1.28,Mean + 1.28*Sigma Bound,0,350,250,2.624,2.0,60.0,100.0,40.0,13.839,4.414
+1.64,Mean + 1.64*Sigma Bound,0,350,500,2.624,2.0,60.0,100.0,40.0,13.839,4.414
+2.0,Mean + 2.0*Sigma Bound,0,350,700,2.624,2.0,60.0,100.0,40.0,13.839,4.414

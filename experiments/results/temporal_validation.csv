@@ -1,0 +1,4 @@
+split_method,train_samples,test_samples,train_time_s,static_mae,static_rmse,static_r2,dynamic_mae,dynamic_top1_pct,dynamic_top3_pct,spearman_rho,optimality_gap,materially_worse_rate_pct,leakage_risk
+Random Row Split (80/20),8000,2000,0.356,0.311,0.563,0.9976,2.624,40.0,100.0,0.457,3.58,60.0,High (intra-trajectory rows in train & test)
+Episode-Grouped Split,8080,1920,0.377,0.46,0.83,0.9951,2.275,80.0,100.0,0.604,0.62,20.0,Zero (strictly disjoint trajectories)
+Temporal Block Split (Forward-Horizon),7048,2952,0.32,0.56,0.955,0.9918,2.883,60.0,100.0,0.502,2.0,40.0,"Zero (train on historical past, test on sustained future)"

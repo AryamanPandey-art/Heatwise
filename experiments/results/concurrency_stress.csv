@@ -1,0 +1,4 @@
+experiment,scheduler,total_workloads,placement_failures,fallback_invocations,peak_temp,avg_temp,temp_std,hotspots,sla_violations,avg_headroom,total_power_kw,total_energy_kwh
+Concurrency Stress,Round Robin,50,3,0,84.1,65.3,10.46,3,5,11.2,98.52,1231.49
+Concurrency Stress,Least Loaded,50,0,0,90.4,66.2,12.16,3,6,11.3,98.52,1231.49
+Concurrency Stress,HeatWise,50,0,0,84.1,65.2,9.09,2,4,11.0,98.52,1231.49

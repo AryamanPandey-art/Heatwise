@@ -1,0 +1,145 @@
+{
+  "summary_A_legacy_model": {
+    "Round Robin": {
+      "peak_temp": 85.7,
+      "temp_std": 8.2,
+      "avg_temp": 70.5,
+      "avg_headroom": 4.5,
+      "hotspots": 3,
+      "sla_violations": 5,
+      "placement_failures": 2,
+      "total_power_kw": 112.85,
+      "total_energy_kwh": 423.18
+    },
+    "Least Loaded": {
+      "peak_temp": 92.0,
+      "temp_std": 8.7,
+      "avg_temp": 71.9,
+      "avg_headroom": 3.1,
+      "hotspots": 3,
+      "sla_violations": 6,
+      "placement_failures": 0,
+      "total_power_kw": 117.4,
+      "total_energy_kwh": 440.25
+    },
+    "HeatWise": {
+      "peak_temp": 84.1,
+      "temp_std": 6.2,
+      "avg_temp": 69.4,
+      "avg_headroom": 5.6,
+      "hotspots": 2,
+      "sla_violations": 4,
+      "placement_failures": 2,
+      "total_power_kw": 111.1,
+      "total_energy_kwh": 416.62
+    }
+  },
+  "summary_A_10k_model": {
+    "Round Robin": {
+      "peak_temp": 85.7,
+      "temp_std": 8.2,
+      "avg_temp": 70.5,
+      "avg_headroom": 4.5,
+      "hotspots": 3,
+      "sla_violations": 5,
+      "placement_failures": 2,
+      "total_power_kw": 112.85,
+      "total_energy_kwh": 423.18
+    },
+    "Least Loaded": {
+      "peak_temp": 92.0,
+      "temp_std": 8.7,
+      "avg_temp": 71.9,
+      "avg_headroom": 3.1,
+      "hotspots": 3,
+      "sla_violations": 6,
+      "placement_failures": 0,
+      "total_power_kw": 117.4,
+      "total_energy_kwh": 440.25
+    },
+    "HeatWise": {
+      "peak_temp": 84.1,
+      "temp_std": 6.1,
+      "avg_temp": 70.5,
+      "avg_headroom": 4.5,
+      "hotspots": 3,
+      "sla_violations": 5,
+      "placement_failures": 1,
+      "total_power_kw": 114.25,
+      "total_energy_kwh": 428.43
+    }
+  },
+  "summary_B_migrated": {
+    "Round Robin": {
+      "peak_temp": 88.4,
+      "temp_std": 10.0,
+      "avg_temp": 69.4,
+      "avg_headroom": 5.6,
+      "hotspots": 4,
+      "sla_violations": 6,
+      "placement_failures": 0,
+      "total_power_kw": 108.91,
+      "total_energy_kwh": 408.41
+    },
+    "Least Loaded": {
+      "peak_temp": 92.0,
+      "temp_std": 10.0,
+      "avg_temp": 69.2,
+      "avg_headroom": 5.8,
+      "hotspots": 3,
+      "sla_violations": 6,
+      "placement_failures": 0,
+      "total_power_kw": 108.91,
+      "total_energy_kwh": 408.41
+    },
+    "HeatWise": {
+      "peak_temp": 84.1,
+      "temp_std": 6.3,
+      "avg_temp": 68.6,
+      "avg_headroom": 6.4,
+      "hotspots": 2,
+      "sla_violations": 4,
+      "placement_failures": 0,
+      "total_power_kw": 108.91,
+      "total_energy_kwh": 408.41
+    }
+  },
+  "summary_C_normalized": {
+    "Round Robin": {
+      "peak_temp": 88.4,
+      "temp_std": 10.0,
+      "avg_temp": 69.4,
+      "avg_headroom": 5.6,
+      "hotspots": 4,
+      "sla_violations": 6,
+      "placement_failures": 0,
+      "total_power_kw": 108.91,
+      "total_energy_kwh": 408.41
+    },
+    "Least Loaded": {
+      "peak_temp": 92.0,
+      "temp_std": 10.0,
+      "avg_temp": 69.2,
+      "avg_headroom": 5.8,
+      "hotspots": 3,
+      "sla_violations": 6,
+      "placement_failures": 0,
+      "total_power_kw": 108.91,
+      "total_energy_kwh": 408.41
+    },
+    "HeatWise": {
+      "peak_temp": 84.1,
+      "temp_std": 6.3,
+      "avg_temp": 68.6,
+      "avg_headroom": 6.4,
+      "hotspots": 2,
+      "sla_violations": 4,
+      "placement_failures": 0,
+      "total_power_kw": 108.91,
+      "total_energy_kwh": 408.41
+    }
+  },
+  "power_A": 25180.0,
+  "power_B": 16690.0,
+  "power_C": 16690.0
+}
